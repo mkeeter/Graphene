@@ -29,7 +29,7 @@
 (use-modules (ggspec lib))
 (use-modules (srfi srfi-1))
 
-(use-modules (graphene lookup) (graphene hset))
+(use-modules (graphene lookup) (graphene hset) (graphene datum))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -86,4 +86,33 @@
                 (assert-lset-eq? (t 'inverse 'child) '())
                 (assert-lset-eq? (t 'inverse 'parent) '())
                 (assert-lset-eq? (t 'forward 'parent) '()))))
+))
+
+(suite "datum.scm"
+    (tests
+
+    (test "Setting expr" env
+    (let ((d (make-datum)))
+        (assert-true (datum-set-expr! d "12"))))
+
+    (test "Setting expr (unchanged)" env
+    (let ((d (make-datum)))
+        (datum-set-expr! d "12")
+        (assert-false (datum-set-expr! d "12"))))
+
+    (test "datum-eval!" env
+    (let ((d (make-datum)))
+        (datum-set-expr! d "12")
+        (assert-all
+            (assert-true (datum-eval! d (interaction-environment)))
+            (assert-equal (datum-value d) 12))))
+
+    (test "datum-eval! (constant value)" env
+    (let ((d (make-datum)))
+        (datum-set-expr! d "3")
+        (datum-eval! d (interaction-environment))
+        (datum-set-expr! d "(+ 1 2)")
+        (assert-all
+            (assert-false (datum-eval! d (interaction-environment)))
+            (assert-equal (datum-value d) 3))))
 ))

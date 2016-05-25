@@ -20,49 +20,79 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-module (graphene graph)
-    #:export (make-graph))
+    #:export (make-graph graph-can-insert? graph-insert!))
 
 (use-modules (ice-9 r5rs))
+(use-modules (oop goops))
 (use-modules (graphene lookup) (graphene datum))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (make-graph)
-    (let ((children (make-hash-table))
-          (lookups (make-lookup-table)))
+(define-class <graph> ()
+    (children #:init-thunk make-hash-table)
+    (lookups #:init-thunk make-lookup-table))
 
-    (define (make-env a)
-        (define (perform-lookup name)
-            (lookups 'record a name)
-            (let ((c (hash-ref children name)))
-            (cond ((eq? (c 'type) 'datum)
-                    (if (c 'error) (error "Datum is invalid" child)
-                                   (c 'value)))
-                  (else (error "Invalid child" name c)))))
+(define (make-graph) (make <graph>))
 
-        (let ((env (scheme-report-environment 5)))
+(define-method (graph-env (g <graph>) (a <pair>))
+    "graph-env graph a
+    Returns a module in which all children g are no-argument lambda functions
+    When called, they record a lookup by 'a"
+    (let ((env (scheme-report-environment 5))
+          (prefix (list-head a (1- (length a)))))
 
-        (hash-for-each (lambda (name child)
-            (module-define! env name (lambda () (perform-lookup name))))
-            children)
-        env))
+    ;; Local lookup function records that 'a' did the looking up
+    (define (perform-lookup-of name)
+        (lookup-record! (slot-ref g 'lookups) a name)
+        (let ((d (hash-ref (slot-ref g 'children) (car a))))
+            (if (datum-error d)
+                (error "Datum is invalid" d)
+                (datum-value d))))
 
-    (define (add-datum name expr)
-        (if (hash-ref children name)
-            (error "Duplicate names are not allowed"))
-        (hash-set! children name (make-datum))
-        (set-datum-expr name expr)
+    (hash-for-each (lambda (name child)
+        (module-define! env name (lambda () (perform-lookup-of name))))
+        (slot-ref g 'children))
+    env))
 
-    (define (set-datum-expr name expr)
-        (if (not (hash-ref children name))
-            (error "Could not find datum" name))
-        (if (not (string? expr))
-            (error "expr must be a string" expr))
-        (datum 'set-expr! expr))
+(define-method (graph-can-insert? (g <graph>) (name <pair>))
+    "graph-can-insert graph name
+    Checks to see whether the given name can be inserted into the graph"
+    (define (recurse hash name)
+        (let* ((head (car name))
+               (tail (cdr name))
+               (ref (hash-ref hash head)))
+        (cond ((null? tail) (not ref))
+              ((datum? ref ) #f)
+              (ref (recurse ref tail))
+              (else #t))))
+    (recurse (slot-ref g 'children) name))
 
-    (define (dispatch-graph key . args)
-        (cond ((eq? key 'env) (make-env (car args)))
-              ((eq? key 'add-datum) (add-datum (car args) (cadr args)))
-              (else (error "Invalid key" key))))
+(define-method (graph-insert! (g <graph>) (name <pair>) (expr <string>))
+    "graph-insert-datum graph name expr
+    Inserts a datum into the graph
+    Recursively inserts subgraph tables if name has length > 1"
+    (define (recurse hash name expr)
+        (let* ((head (car name))
+               (tail (cdr name))
+               (ref (hash-ref hash head)))
 
-    dispatch-graph))
+        (if (null? tail)
+            ;; If we've reached the bottom of our recursion, make a new datum
+            ;; and assign it (as graph-can-insert? already checked that the
+            ;; name isn't already in use)
+             (let ((d (make-datum)))
+                 (hash-set! hash head d)
+                 (datum-set-expr! d expr))
+
+            ;; Otherwise, construct a subgraph if necessary and then recurse
+            ;; into it with the remaining name symbols
+            (begin
+            (if (not ref)
+                (begin (set! ref (make-hash-table))
+                       (hash-set! hash head ref)))
+            (recurse ref tail expr)))))
+
+    (if (not (graph-can-insert? g name))
+        (error "Invalid or duplicate name" name)
+        (recurse (slot-ref g 'children) name expr)))
+

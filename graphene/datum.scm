@@ -20,7 +20,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-module (graphene datum)
-    #:export (make-datum datum-set-expr! datum-eval! datum-value datum-error))
+    #:export (datum? make-datum datum-set-expr! datum-eval! datum-value datum-error))
 
 (use-modules (oop goops))
 
@@ -30,6 +30,7 @@
     (error #:init-form #nil))
 
 (define (make-datum) (make <datum>))
+(define (datum? d) (eq? (class-of d) <datum>))
 
 (define-method (datum-set-expr! (d <datum>) (e <string>))
     "datum-set-expr! d s

@@ -29,7 +29,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
     (
     assert-between
     assert-equal
-    assert-=
+    assert-same
     assert-gt
     assert-gte
     assert-lt
@@ -141,7 +141,7 @@ Returns
       got: any: the 'got' value that was passed in to the function."
   (list (equal? expected got) expected #f got))
 
-(define (assert-= comp expected got)
+(define (assert-same comp expected got)
   "Checks that the expected value is equal to the received value.
 
   Arguments

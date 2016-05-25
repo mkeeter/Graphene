@@ -18,46 +18,51 @@
 |#
 
 (define-module (graphene lookup)
-    #:export (make-lookup-table))
+    #:export (make-lookup-table
+              lookup-record!
+              lookup-clear!
+              lookup-forward
+              lookup-inverse))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(use-modules (graphene hset))
+(use-modules (oop goops)
+             (graphene hset))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define-class <lookup-table> ()
+    (forward #:init-thunk make-hash-table)
+    (inverse #:init-thunk make-hash-table))
 
-(define (make-lookup-table)
-    (let ((forward (make-hash-table))
-          (inverse (make-hash-table)))
+(define (make-lookup-table) (make <lookup-table>))
 
-    (define (get h k)
-        (if (not (hash-ref h k))
-            (hash-set! h k (hset-empty)))
-        (hash-ref h k))
+(define-method (hset-ref (table <lookup-table>) (dir <symbol>) key)
+    "hset-ref table dir key
+    Returns the hset for the given direction and key
+    dir is 'forward or 'inverse
+    key is the hash-set key"
+    (if (not (hash-ref (slot-ref table dir) key))
+        (hash-set! (slot-ref table dir) key (hset-empty)))
+    (hash-ref (slot-ref table dir) key))
 
-    (define (flatten h)
-        (hash-map->list (lambda (k v) (cons k (hset-list v))) h))
+(define-method (lookup-record! (table <lookup-table>) a b)
+    "lookup-record table a b
+    Records that a looked up b"
+    (hset-insert! (hset-ref table 'forward a) b)
+    (hset-insert! (hset-ref table 'inverse b) a))
 
-    (define (record-lookup a b)
-        ;; Record that a looked up b
-        (hset-insert! (get forward a) b)
-        (hset-insert! (get inverse b) a))
+(define-method (lookup-clear! (table <lookup-table>) a)
+    "lookup-clear table a
+    Clears all lookups performed by a"
+    (map (lambda (b) (hset-remove! (hset-ref table 'inverse b) a))
+         (hset-list (hset-ref table 'forward a)))
+    (hash-remove! (slot-ref table 'forward) a))
 
-    (define (clear-lookups a)
-        ;; Clear all lookups performed by a
-        (map (lambda (b) (hset-remove! (get inverse b) a))
-             (hset-list (get forward a)))
-        (hash-remove! forward a))
+(define-method (lookup-forward (table <lookup-table>) a)
+    "lookup-forward table a
+    Records all of the things that a has looked up"
+    (hset-list (hset-ref table 'forward a)))
 
-    (define (dispatch-lookup key . args)
-        (cond ((eq? key 'record) (record-lookup (car args) (cadr args)))
-              ((eq? key 'clear)  (clear-lookups (car args)))
-              ((eq? key 'forward)
-                    (if (null? args) (flatten forward)
-                                     (hset-list (get forward (car args)))))
-              ((eq? key 'inverse)
-                    (if (null? args) (flatten inverse)
-                                     (hset-list (get inverse (car args)))))
-              (else (error "Invalid key" key))))
-
-    dispatch-lookup))
+(define-method (lookup-inverse (table <lookup-table>) b)
+    "lookup-inverse table a
+    Records all of the things that looked up b"
+    (hset-list (hset-ref table 'inverse b)))

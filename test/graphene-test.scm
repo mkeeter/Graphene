@@ -29,12 +29,15 @@
 (use-modules (ggspec lib))
 (use-modules (srfi srfi-1))
 
-(use-modules (graphene lookup) (graphene hset) (graphene datum))
+(use-modules (graphene lookup)
+             (graphene hset)
+             (graphene datum)
+             (graphene graph))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (assert-lset-eq? a b)
-    (assert-= (lambda (a b) (lset= eq? a b)) a b))
+    (assert-same (lambda (a b) (lset= eq? a b)) a b))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -70,22 +73,22 @@
 
     (test "record-lookup" env
         (let ((t (make-lookup-table)))
-            (t 'record 'child 'parent)
+            (lookup-record! t 'child 'parent)
             (assert-all
-                (assert-lset-eq? (t 'forward 'child) '(parent))
-                (assert-lset-eq? (t 'inverse 'child) '())
-                (assert-lset-eq? (t 'inverse 'parent) '(child))
-                (assert-lset-eq? (t 'forward 'parent) '()))))
+                (assert-lset-eq? (lookup-forward t 'child) '(parent))
+                (assert-lset-eq? (lookup-inverse t 'child) '())
+                (assert-lset-eq? (lookup-inverse t 'parent) '(child))
+                (assert-lset-eq? (lookup-forward t 'parent) '()))))
 
     (test "clear-lookups" env
         (let ((t (make-lookup-table)))
-            (t 'record 'child 'parent)
-            (t 'clear 'child)
+            (lookup-record! t 'child 'parent)
+            (lookup-clear! t 'child)
             (assert-all
-                (assert-lset-eq? (t 'forward 'child) '())
-                (assert-lset-eq? (t 'inverse 'child) '())
-                (assert-lset-eq? (t 'inverse 'parent) '())
-                (assert-lset-eq? (t 'forward 'parent) '()))))
+                (assert-lset-eq? (lookup-forward t 'child) '())
+                (assert-lset-eq? (lookup-inverse t 'child) '())
+                (assert-lset-eq? (lookup-inverse t 'parent) '())
+                (assert-lset-eq? (lookup-forward t 'parent) '()))))
 ))
 
 (suite "datum.scm"
@@ -116,3 +119,18 @@
             (assert-false (datum-eval! d (interaction-environment)))
             (assert-equal (datum-value d) 3))))
 ))
+
+(suite "graph.scm"
+    (tests
+
+    (test "graph-can-insert?" env
+    (let ((g (make-graph)))
+        (graph-insert! g '(x) "12")
+        (graph-insert! g '(a x) "13")
+        (assert-all
+            (assert-true (graph-can-insert? g '(y)))
+            (assert-false (graph-can-insert? g '(x)))
+            (assert-true (graph-can-insert? g '(a y)))
+            (assert-false (graph-can-insert? g '(a x))))))
+))
+

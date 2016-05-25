@@ -132,5 +132,15 @@
             (assert-false (graph-can-insert? g '(x)))
             (assert-true (graph-can-insert? g '(a y)))
             (assert-false (graph-can-insert? g '(a x))))))
+
+    (test "graph-datum-ref" env
+    (let ((g (make-graph)))
+        (graph-insert! g '(x) "12")
+        (graph-insert! g '(a x) "13")
+        (assert-all
+            (assert-true (graph-datum-ref g '(x)))
+            (assert-false (graph-datum-ref g '(y)))
+            (assert-true (graph-datum-ref g '(a x)))
+            (assert-false (graph-datum-ref g '(a y))))))
 ))
 

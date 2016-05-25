@@ -20,7 +20,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-module (graphene graph)
-    #:export (make-graph graph-can-insert? graph-insert!))
+    #:export (make-graph graph-can-insert? graph-insert! graph-datum-ref))
 
 (use-modules (ice-9 r5rs))
 (use-modules (oop goops))
@@ -96,3 +96,16 @@
         (error "Invalid or duplicate name" name)
         (recurse (slot-ref g 'children) name expr)))
 
+(define-method (graph-datum-ref (g <graph>) (name <pair>))
+    "graph-datum-ref graph name
+    Looks up a datum by name, returning it"
+    (define (recurse hash name)
+        (let* ((head (car name))
+               (tail (cdr name))
+               (ref (hash-ref hash head)))
+        (cond ((datum? ref) ref)
+              ((hash-table? ref) (recurse ref tail))
+              (else #f))))
+    (recurse (slot-ref g 'children) name))
+
+;(define-method (graph-eval-datum (g <graph>) (name <pair>))

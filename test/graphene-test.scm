@@ -142,5 +142,29 @@
             (assert-false (graph-datum-ref g '(y)))
             (assert-true (graph-datum-ref g '(a x)))
             (assert-false (graph-datum-ref g '(a y))))))
+
+    (test "graph-env" env
+    (let ((g (make-graph)))
+        (graph-insert! g '(x) "1")
+        (let ((env (graph-env g '(dummy))))
+            (assert-true (module-ref env 'x)))))
+
+    (test "graph-eval-datum (independent)" env
+    (let ((g (make-graph)))
+        (graph-freeze! g)
+        (graph-insert! g '(x) "12")
+        (assert-all
+            (assert-true (graph-eval-datum g '(x)))
+            (assert-equal (graph-datum-value g '(x)) 12))))
+
+    (test "graph-eval-datum (dependent)" env
+    (let ((g (make-graph)))
+        (graph-freeze! g)
+        (graph-insert! g '(x) "1")
+        (graph-insert! g '(y) "(+ 1 (x))")
+        (graph-eval-datum g '(x))
+        (assert-all
+            (assert-true (graph-eval-datum g '(y)))
+            (assert-equal (graph-datum-value g '(y)) 2))))
 ))
 

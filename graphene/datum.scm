@@ -20,7 +20,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-module (graphene datum)
-    #:export (datum? make-datum datum-set-expr! datum-eval! datum-value datum-error))
+    #:export (datum? make-datum datum-set-expr! datum-eval!
+                     datum-value datum-error))
 
 (use-modules (oop goops))
 
@@ -43,7 +44,7 @@
     (slot-ref d 'value))
 
 (define-method (datum-error (d <datum>))
-    (slot-ref d error))
+    (slot-ref d 'error))
 
 (define-method (datum-eval! (d <datum>) (env <module>))
     "datum-eval! d env

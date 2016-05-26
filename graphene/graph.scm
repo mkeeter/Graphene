@@ -20,7 +20,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-module (graphene graph)
-    #:export (make-graph graph-can-insert? graph-insert! graph-datum-ref))
+    #:export (make-graph graph-can-insert? graph-insert! graph-env
+              graph-datum-ref graph-eval-datum graph-datum-value
+              graph-freeze! graph-unfreeze!))
 
 (use-modules (ice-9 r5rs))
 (use-modules (oop goops))
@@ -30,7 +32,8 @@
 
 (define-class <graph> ()
     (children #:init-thunk make-hash-table)
-    (lookups #:init-thunk make-lookup-table))
+    (lookups #:init-thunk make-lookup-table)
+    (frozen #:init-form #f))
 
 (define (make-graph) (make <graph>))
 
@@ -38,13 +41,12 @@
     "graph-env graph a
     Returns a module in which all children g are no-argument lambda functions
     When called, they record a lookup by 'a"
-    (let ((env (scheme-report-environment 5))
-          (prefix (list-head a (1- (length a)))))
+    (let ((env (scheme-report-environment 5)))
 
     ;; Local lookup function records that 'a' did the looking up
     (define (perform-lookup-of name)
         (lookup-record! (slot-ref g 'lookups) a name)
-        (let ((d (hash-ref (slot-ref g 'children) (car a))))
+        (let ((d (hash-ref (slot-ref g 'children) name)))
             (if (datum-error d)
                 (error "Datum is invalid" d)
                 (datum-value d))))
@@ -108,4 +110,24 @@
               (else #f))))
     (recurse (slot-ref g 'children) name))
 
-;(define-method (graph-eval-datum (g <graph>) (name <pair>))
+(define-method (graph-eval-datum (g <graph>) (name <pair>))
+    "graph-eval-datum graph name
+    Evaluates a datum by name, returning true if its value changed"
+    (datum-eval! (graph-datum-ref g name) (graph-env g name)))
+
+(define-method (graph-datum-value (g <graph>) (name <pair>))
+    "graph-datum-value graph name
+    Returns the value of a datum, indexed by name"
+    (datum-value (graph-datum-ref g name)))
+
+(define-method (graph-freeze! (g <graph>))
+    "graph-freeze graph
+    Marks a graph as frozen.
+    When frozen, automatic evaluation is disabled"
+    (slot-set! g 'frozen #t))
+
+(define-method (graph-unfreeze! (g <graph>))
+    "graph-unfreeze graph
+    Marks a graph as unfrozen.
+    When unfrozen, changing datum's automatically triggers re-evaluation"
+    (slot-set! g 'frozen #f))

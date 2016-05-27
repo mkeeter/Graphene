@@ -26,7 +26,7 @@
 
 (use-modules (ice-9 r5rs))
 (use-modules (oop goops))
-(use-modules (graphene lookup) (graphene datum))
+(use-modules (graphene lookup) (graphene datum) (graphene topolist))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -96,7 +96,10 @@
 
     (if (not (graph-can-insert? g name))
         (error "Invalid or duplicate name" name)
-        (recurse (slot-ref g 'children) name expr)))
+        (begin
+            (recurse (slot-ref g 'children) name expr)
+            (if (not (slot-ref g 'frozen))
+                (graph-sync g name)))))
 
 (define-method (graph-datum-ref (g <graph>) (name <pair>))
     "graph-datum-ref graph name
@@ -113,6 +116,7 @@
 (define-method (graph-eval-datum (g <graph>) (name <pair>))
     "graph-eval-datum graph name
     Evaluates a datum by name, returning true if its value changed"
+    (lookup-clear! (slot-ref g 'lookups) name)
     (datum-eval! (graph-datum-ref g name) (graph-env g name)))
 
 (define-method (graph-datum-value (g <graph>) (name <pair>))
@@ -131,3 +135,25 @@
     Marks a graph as unfrozen.
     When unfrozen, changing datum's automatically triggers re-evaluation"
     (slot-set! g 'frozen #f))
+
+(define-method (graph-sync (g <graph>) (dirty <pair>))
+    "graph-sync graph datum
+    Marks the given datum as dirty and starts recursive evaluation"
+    (define (free a b) (is-downstream? (slot-ref g 'lookups) a b))
+    (let ((t (make-topolist free)))
+        (topolist-insert! t dirty)
+        (graph-sync g t)))
+
+(define-method (graph-sync (g <graph>) (dirty <topolist>))
+    "graph-sync graph topolist
+    Recursively evaluates graph clauses"
+    (let ((head (topolist-pop! dirty)))
+        (if (not (null? head))
+            (begin
+            ;; If this datum's value has changed, then add all of its
+            ;; directly downstream friends to the topolist for evaluation
+            (if (graph-eval-datum g head)
+                (map (lambda (k) (topolist-insert! dirty k))
+                     (lookup-inverse (slot-ref g 'lookups) head)))
+            ;; Recurse until the dirty list is empty
+            (graph-sync g dirty)))))

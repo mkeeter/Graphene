@@ -18,7 +18,7 @@
 |#
 
 (define-module (graphene topolist)
-    #:export (make-topolist topolist-insert! topolist-pop!))
+    #:export (<topolist> make-topolist topolist-insert! topolist-pop!))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

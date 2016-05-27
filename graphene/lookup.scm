@@ -19,35 +19,47 @@
 
 (define-module (graphene lookup)
     #:export (make-lookup-table
-              lookup-record!
-              lookup-clear!
-              lookup-forward
-              lookup-inverse))
+              lookup-record! lookup-clear!
+              lookup-forward lookup-upstream lookup-inverse))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (use-modules (oop goops)
              (graphene hset))
 
+;;  <lookup-table> is a bidirectional table of lookups
+;;      forward records things that a particular name looked up
+;;      upstream records things that a particular name looked up, and things
+;;          that those things looked up, etc (so it's the union of all the
+;;          upstream values)
+;;      inverse records the names that looked up a particular thing"
 (define-class <lookup-table> ()
-    (forward #:init-thunk make-hash-table)
-    (inverse #:init-thunk make-hash-table))
+    (forward  #:init-thunk make-hash-table)
+    (upstream #:init-thunk make-hash-table)
+    (inverse  #:init-thunk make-hash-table))
 
 (define (make-lookup-table) (make <lookup-table>))
 
 (define-method (hset-ref (table <lookup-table>) (dir <symbol>) key)
     "hset-ref table dir key
     Returns the hset for the given direction and key
-    dir is 'forward or 'inverse
+    dir is 'forward, 'inverse, or 'upstream
     key is the hash-set key"
-    (if (not (hash-ref (slot-ref table dir) key))
-        (hash-set! (slot-ref table dir) key (hset-empty)))
-    (hash-ref (slot-ref table dir) key))
+    (let ((ref (hash-ref (slot-ref table dir) key)))
+    (if (not ref)
+        (begin
+            (set! ref (hset-empty))
+            (hash-set! (slot-ref table dir) key ref)
+            (if (eq? dir 'upstream)
+                (hset-insert! ref key))))
+    ref))
 
 (define-method (lookup-record! (table <lookup-table>) a b)
     "lookup-record table a b
     Records that a looked up b"
     (hset-insert! (hset-ref table 'forward a) b)
+    (hset-union!  (hset-ref table 'upstream a)
+                  (hset-ref table 'upstream b))
     (hset-insert! (hset-ref table 'inverse b) a))
 
 (define-method (lookup-clear! (table <lookup-table>) a)
@@ -55,14 +67,20 @@
     Clears all lookups performed by a"
     (map (lambda (b) (hset-remove! (hset-ref table 'inverse b) a))
          (hset-list (hset-ref table 'forward a)))
-    (hash-remove! (slot-ref table 'forward) a))
+    (hash-remove! (slot-ref table 'forward) a)
+    (hash-remove! (slot-ref table 'upstream) a))
 
 (define-method (lookup-forward (table <lookup-table>) a)
     "lookup-forward table a
-    Records all of the things that a has looked up"
+    Lists all of the things that a has looked up"
     (hset-list (hset-ref table 'forward a)))
+
+(define-method (lookup-upstream (table <lookup-table>) a)
+    "lookup-upstream table a
+    Lists all of the things upstream of a"
+    (hset-list (hset-ref table 'upstream a)))
 
 (define-method (lookup-inverse (table <lookup-table>) b)
     "lookup-inverse table a
-    Records all of the things that looked up b"
+    Lists all of the things that looked up b"
     (hset-list (hset-ref table 'inverse b)))

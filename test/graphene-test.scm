@@ -64,6 +64,14 @@
             (hset-insert! h 'a)
             (hset-remove! h 'a)
             (assert-equal (hset-list h) '())))
+    (test "hset-union!" env
+        (let ((a (hset-empty))
+              (b (hset-empty)))
+            (hset-insert! a 'x)
+            (hset-insert! b 'y)
+            (hset-insert! b 'z)
+            (hset-union! a b)
+            (assert-lset-eq? (hset-list a) '(x y z))))
 ))
 
 (suite "lookup.scm (bidirectional lookup table)"
@@ -71,7 +79,7 @@
     (test "make-lookup-table" env
         (assert-true (not (null? (make-lookup-table)))))
 
-    (test "record-lookup" env
+    (test "lookup-record!" env
         (let ((t (make-lookup-table)))
             (lookup-record! t 'child 'parent)
             (assert-all
@@ -80,15 +88,28 @@
                 (assert-lset-eq? (lookup-inverse t 'parent) '(child))
                 (assert-lset-eq? (lookup-forward t 'parent) '()))))
 
-    (test "clear-lookups" env
+    (test "lookup-clear!" env
         (let ((t (make-lookup-table)))
             (lookup-record! t 'child 'parent)
             (lookup-clear! t 'child)
             (assert-all
                 (assert-lset-eq? (lookup-forward t 'child) '())
                 (assert-lset-eq? (lookup-inverse t 'child) '())
+                (assert-lset-eq? (lookup-upstream t 'child) '(child))
                 (assert-lset-eq? (lookup-inverse t 'parent) '())
                 (assert-lset-eq? (lookup-forward t 'parent) '()))))
+
+    (test "lookup-upstream" env
+        (let ((t (make-lookup-table)))
+            (lookup-record! t 'parent 'grandparent)
+            (lookup-record! t 'child 'parent)
+            (assert-all
+                (assert-lset-eq? '(child parent grandparent)
+                                  (lookup-upstream t 'child))
+                (assert-lset-eq? '(parent grandparent)
+                                  (lookup-upstream t 'parent))
+                (assert-lset-eq? '(grandparent)
+                                 (lookup-upstream t 'grandparent)))))
 ))
 
 (suite "datum.scm"

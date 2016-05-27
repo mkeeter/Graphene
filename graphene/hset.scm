@@ -20,7 +20,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-module (graphene hset)
-    #:export (hset-empty hset-list hset-insert! hset-remove!))
+    #:export (hset-empty hset-list hset-insert! hset-remove! hset-union!))
 
 (use-modules (oop goops))
 
@@ -38,6 +38,12 @@
 
 (define-method (hset-insert! (h <hset>) value)
     (hash-set! (slot-ref h 'table) value #t))
+
+(define-method (hset-union! (self <hset>) (other <hset>))
+    "hset-union! self other
+    Inserts every element from other into self"
+    (hash-for-each (lambda (k v) (hset-insert! self k))
+                   (slot-ref other 'table)))
 
 (define-method (hset-remove! (h <hset>) value)
     (hash-remove! (slot-ref h 'table) value))

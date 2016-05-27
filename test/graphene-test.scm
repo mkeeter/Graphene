@@ -218,5 +218,5 @@
             (assert-equal 10 (topolist-pop! t))
             (assert-equal 5 (topolist-pop! t))
             (assert-equal 1 (topolist-pop! t))
-            (assert-equal #nil (topolist-pop! t)))))
+            (assert-true (null? (topolist-pop! t))))))
 ))

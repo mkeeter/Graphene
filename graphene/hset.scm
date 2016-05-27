@@ -20,7 +20,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-module (graphene hset)
-    #:export (hset-empty hset-list hset-insert! hset-remove! hset-union!))
+    #:export (hset-empty hset-list hset-contains?
+              hset-insert! hset-remove! hset-union!))
 
 (use-modules (oop goops))
 
@@ -35,6 +36,11 @@
 
 (define-method (hset-list (h <hset>))
     (hash-map->list (lambda (k v) k) (slot-ref h 'table)))
+
+(define-method (hset-contains? (h <hset>) value)
+    "hset-contains h value
+    Return true if the value is stored in the set"
+    (hash-ref (slot-ref h 'table) value))
 
 (define-method (hset-insert! (h <hset>) value)
     (hash-set! (slot-ref h 'table) value #t))

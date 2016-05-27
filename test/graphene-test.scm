@@ -50,6 +50,12 @@
         (let ((h (hset-empty)))
             (hset-insert! h 'a)
             (assert-equal (hset-list h) '(a))))
+    (test "hset-contains" env
+        (let ((h (hset-empty)))
+            (hset-insert! h 'a)
+            (assert-all
+                (assert-true (hset-contains? h 'a))
+                (assert-true (not (hset-contains? h 'b))))))
     (test "insert duplicates" env
         (let ((h (hset-empty)))
             (hset-insert! h 'a)

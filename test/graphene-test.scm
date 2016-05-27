@@ -50,7 +50,7 @@
         (let ((h (hset-empty)))
             (hset-insert! h 'a)
             (assert-equal (hset-list h) '(a))))
-    (test "hset-contains" env
+    (test "hset-contains?" env
         (let ((h (hset-empty)))
             (hset-insert! h 'a)
             (assert-all
@@ -117,6 +117,16 @@
                                   (lookup-upstream t 'parent))
                 (assert-lset-eq? '(grandparent)
                                  (lookup-upstream t 'grandparent)))))
+
+    (test "is-downstream?" env
+        (let ((t (make-lookup-table)))
+            (lookup-record! t 'parent 'grandparent)
+            (lookup-record! t 'child 'parent)
+            (assert-all
+                (assert-true (is-downstream? t 'child 'parent))
+                (assert-true (is-downstream? t 'child 'grandparent))
+                (assert-true (is-downstream? t 'parent 'grandparent))
+                (assert-false (is-downstream? t 'grandparent 'parent)))))
 ))
 
 (suite "datum.scm"

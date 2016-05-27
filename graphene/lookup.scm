@@ -19,7 +19,7 @@
 
 (define-module (graphene lookup)
     #:export (make-lookup-table
-              lookup-record! lookup-clear!
+              lookup-record! lookup-clear! is-downstream?
               lookup-forward lookup-upstream lookup-inverse))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -79,6 +79,12 @@
     "lookup-upstream table a
     Lists all of the things upstream of a"
     (hset-list (hset-ref table 'upstream a)))
+
+(define-method (is-downstream? (table <lookup-table>) a b)
+    "is-downstream? table a b
+    Returns true if a is downstream of b
+    (i.e. if b is in a's upstream set)"
+    (hset-contains? (hset-ref table 'upstream a) b))
 
 (define-method (lookup-inverse (table <lookup-table>) b)
     "lookup-inverse table a

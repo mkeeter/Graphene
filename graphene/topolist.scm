@@ -77,5 +77,8 @@
     This is the item a for which (func a b) is false for
     every other item b in the list."
     (let ((out (slot-ref t 'head)))
-        (slot-set! t 'head (car out))
-        out))
+    (if (null? out)
+        '()
+        (begin
+            (slot-set! t 'head (cdr out))
+            (car out)))))

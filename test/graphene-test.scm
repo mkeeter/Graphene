@@ -32,7 +32,8 @@
 (use-modules (graphene lookup)
              (graphene hset)
              (graphene datum)
-             (graphene graph))
+             (graphene graph)
+             (graphene topolist))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -189,3 +190,17 @@
             (assert-equal (graph-datum-value g '(y)) 2))))
 ))
 
+(suite "topolist.scm (topologically sorted list class)"
+    (tests
+
+    (test "topolist-insert!" env
+    (let ((t (make-topolist <)))
+        (topolist-insert! t 1)
+        (topolist-insert! t 10)
+        (topolist-insert! t 5)
+        (assert-all
+            (assert-equal 10 (topolist-pop! t))
+            (assert-equal 5 (topolist-pop! t))
+            (assert-equal 1 (topolist-pop! t))
+            (assert-equal #nil (topolist-pop! t)))))
+))

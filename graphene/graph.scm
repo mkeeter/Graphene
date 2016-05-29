@@ -21,10 +21,13 @@
 
 (define-module (graphene graph)
     #:export (make-graph graph-can-insert? graph-insert! graph-env
-              graph-datum-ref graph-eval-datum graph-datum-value
-              graph-freeze! graph-unfreeze!))
+              graph-datum-ref graph-subgraph-ref
+              graph-eval-datum! graph-datum-value
+              graph-freeze! graph-unfreeze! graph-set-expr!))
 
 (use-modules (ice-9 r5rs))
+(use-modules (ice-9 receive))
+
 (use-modules (oop goops))
 (use-modules (graphene lookup) (graphene datum) (graphene topolist))
 
@@ -37,24 +40,48 @@
 
 (define (make-graph) (make <graph>))
 
+(define-method (split-name (a <pair>))
+    "split-name a
+    Splits an address into prefix and id
+    '(a b c) return '(a b) c"
+    (values (list-head a (1- (length a)))
+            (car (last-pair a))))
+
+(define-method (split-name (a <pair>))
+    "split-name a
+    Splits an address into prefix and id
+    '(a b c) return '(a b) c"
+    (values (list-head a (1- (length a)))
+            (car (last-pair a))))
+
 (define-method (graph-env (g <graph>) (a <pair>))
     "graph-env graph a
     Returns a module in which all children g are no-argument lambda functions
-    When called, they record a lookup by 'a"
-    (let ((env (scheme-report-environment 5)))
+    When called, they record a lookup by a
+    a should be an absolute datum name"
+    (receive (prefix _) (split-name a)
+    (let ((env (null-environment 5))
+          (sre (scheme-report-environment 5)))
 
-    ;; Local lookup function records that 'a' did the looking up
-    (define (perform-lookup-of name)
-        (lookup-record! (slot-ref g 'lookups) a name)
-        (let ((d (hash-ref (slot-ref g 'children) name)))
-            (if (datum-error d)
-                (error "Datum is invalid" d)
-                (datum-value d))))
+    ;; Construct a lookup function that records that 'a' did the looking up
+    (define (local-lookup name datum)
+        (lambda ()
+            (lookup-record! (slot-ref g 'lookups) a (append prefix (list name)))
+            (if (datum-error datum)
+                (error "Datum is invalid" datum)
+                (datum-value datum))))
 
-    (hash-for-each (lambda (name child)
-        (module-define! env name (lambda () (perform-lookup-of name))))
-        (slot-ref g 'children))
-    env))
+    ;; Copy bindings from the scheme-report-environment to the null
+    ;; environment (as scheme-report-environments are shared)
+    (module-for-each (lambda (sym var)
+        (module-define! env sym var)) sre)
+
+    (hash-for-each
+        (lambda (name child)
+            (if (datum? child)
+                (module-define! env name (local-lookup name child))))
+        (graph-subgraph-ref g prefix))
+    env)))
 
 (define-method (graph-can-insert? (g <graph>) (name <pair>))
     "graph-can-insert graph name
@@ -103,25 +130,38 @@
 
 (define-method (graph-datum-ref (g <graph>) (name <pair>))
     "graph-datum-ref graph name
-    Looks up a datum by name, returning it"
+    Looks up a datum by name, returning it
+    Raises an error if no such name is found"
+    (receive (prefix name) (split-name name)
+    (let* ((hash (graph-subgraph-ref g prefix))
+           (ref (hash-ref hash name)))
+        (if (not ref)
+            (error "No such datum" name))
+        ref)))
+
+(define-method (graph-subgraph-ref (g <graph>) (name <list>))
+    "graph-subgraph-ref graph name
+    Looks up a subgraph by name, returning its hash table
+    Raises an error if no such name is found"
     (define (recurse hash name)
-        (let* ((head (car name))
-               (tail (cdr name))
-               (ref (hash-ref hash head)))
-        (cond ((datum? ref) ref)
-              ((hash-table? ref) (recurse ref tail))
-              (else #f))))
+        (if (null? name)
+            hash
+            (let ((ref (hash-ref hash (car name))))
+                (if ref (recurse ref (cdr name))
+                        (error "No such subgraph" name)))))
     (recurse (slot-ref g 'children) name))
 
-(define-method (graph-eval-datum (g <graph>) (name <pair>))
-    "graph-eval-datum graph name
-    Evaluates a datum by name, returning true if its value changed"
+(define-method (graph-eval-datum! (g <graph>) (name <pair>))
+    "graph-eval-datum! graph name
+    Evaluates a datum by name, returning true if its value changed
+    Raises an error if the datum name is invalid"
     (lookup-clear! (slot-ref g 'lookups) name)
     (datum-eval! (graph-datum-ref g name) (graph-env g name)))
 
 (define-method (graph-datum-value (g <graph>) (name <pair>))
     "graph-datum-value graph name
-    Returns the value of a datum, indexed by name"
+    Returns the value of a datum, indexed by name
+    Raises an error if the datum name is invalid"
     (datum-value (graph-datum-ref g name)))
 
 (define-method (graph-freeze! (g <graph>))
@@ -147,13 +187,23 @@
 (define-method (graph-sync (g <graph>) (dirty <topolist>))
     "graph-sync graph topolist
     Recursively evaluates graph clauses"
-    (let ((head (topolist-pop! dirty)))
-        (if (not (null? head))
-            (begin
+    (if (not (topolist-empty? dirty))
+        (let* ((head (topolist-pop! dirty))
+               (changed (graph-eval-datum! g head))
+               (err (datum-error (graph-datum-ref g head))))
             ;; If this datum's value has changed, then add all of its
             ;; directly downstream friends to the topolist for evaluation
-            (if (graph-eval-datum g head)
+            (if changed
                 (map (lambda (k) (topolist-insert! dirty k))
                      (lookup-inverse (slot-ref g 'lookups) head)))
             ;; Recurse until the dirty list is empty
-            (graph-sync g dirty)))))
+            (graph-sync g dirty))))
+
+(define-method (graph-set-expr! (g <graph>) (name <pair>) (expr <string>))
+    "graph-set-expr! graph name expr
+    Sets a particular datum's expression and re-evaluates the graph"
+    (if (graph-datum-ref g name)
+        (if (and (datum-set-expr! (graph-datum-ref g name) expr)
+                 (not (slot-ref g 'frozen)))
+            (graph-sync g name))
+        (error "Invalid datum name" name)))

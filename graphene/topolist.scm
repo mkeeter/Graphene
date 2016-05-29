@@ -18,7 +18,8 @@
 |#
 
 (define-module (graphene topolist)
-    #:export (<topolist> make-topolist topolist-insert! topolist-pop!))
+    #:export (<topolist> make-topolist topolist-empty?
+                         topolist-insert! topolist-pop!))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -82,3 +83,8 @@
         (begin
             (slot-set! t 'head (cdr out))
             (car out)))))
+
+(define-method (topolist-empty? (t <topolist>))
+    "topolist-empty t
+    Checks if the given list is empty"
+    (null? (slot-ref t 'head)))

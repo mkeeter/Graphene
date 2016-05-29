@@ -30,6 +30,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
     assert-between
     assert-equal
     assert-same
+    assert-error
     assert-gt
     assert-gte
     assert-lt
@@ -165,6 +166,18 @@ Returns
 
       got: any: the 'got' value that was passed in to the function."
   (list (comp expected got) expected #f got))
+
+
+(define-syntax-rule (assert-error form)
+  "Asserts that the given form throws an error
+
+  Arguments
+    form: something that should throw an error"
+  (let ((success #t))
+    (catch #t
+        (lambda () form)
+        (lambda (key . args) (set! success #f)))
+    (assert-false success)))
 
 (define (assert-not-equal not-expected got)
   "Like assert-equal, but checks that the specified value is not equal

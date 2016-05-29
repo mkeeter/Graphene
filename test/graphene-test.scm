@@ -156,6 +156,28 @@
         (assert-all
             (assert-false (datum-eval! d (interaction-environment)))
             (assert-equal (datum-value d) 3))))
+
+    (test "datum-value" env
+    (let ((d (make-datum))
+          (e (make-datum)))
+        (datum-set-expr! d "3")
+        (datum-set-expr! e "(x)")
+        (datum-eval! d (interaction-environment))
+        (datum-eval! e (interaction-environment))
+        (assert-all
+            (assert-equal 3 (datum-value d))
+            (assert-false (datum-value e)))))
+
+    (test "datum-error" env
+    (let ((d (make-datum))
+          (e (make-datum)))
+        (datum-set-expr! d "3")
+        (datum-set-expr! d "(x)")
+        (datum-eval! d (interaction-environment))
+        (datum-eval! e (interaction-environment))
+        (assert-all
+            (assert-equal #nil (datum-error d))
+            (assert-true (datum-error e)))))
 ))
 
 (suite "graph.scm"
@@ -163,6 +185,7 @@
 
     (test "graph-can-insert?" env
     (let ((g (make-graph)))
+        (graph-freeze! g)
         (graph-insert! g '(x) "12")
         (graph-insert! g '(a x) "13")
         (assert-all
@@ -173,37 +196,79 @@
 
     (test "graph-datum-ref" env
     (let ((g (make-graph)))
+        (graph-freeze! g)
         (graph-insert! g '(x) "12")
         (graph-insert! g '(a x) "13")
         (assert-all
             (assert-true (graph-datum-ref g '(x)))
-            (assert-false (graph-datum-ref g '(y)))
+            (assert-error (graph-datum-ref g '(y)))
             (assert-true (graph-datum-ref g '(a x)))
-            (assert-false (graph-datum-ref g '(a y))))))
+            (assert-error (graph-datum-ref g '(a y))))))
+
+    (test "graph-subgraph-ref" env
+    (let ((g (make-graph)))
+        (graph-freeze! g)
+        (graph-insert! g '(x) "12")
+        (graph-insert! g '(a x) "13")
+        (assert-all
+            (assert-true (graph-subgraph-ref g '()))
+            (assert-true (graph-subgraph-ref g '(a)))
+            (assert-error (graph-datum-ref g '(b))))))
 
     (test "graph-env" env
     (let ((g (make-graph)))
+        (graph-freeze! g)
         (graph-insert! g '(x) "1")
         (let ((env (graph-env g '(dummy))))
             (assert-true (module-ref env 'x)))))
 
-    (test "graph-eval-datum (independent)" env
+    (test "graph-eval-datum! (independent)" env
     (let ((g (make-graph)))
         (graph-freeze! g)
         (graph-insert! g '(x) "12")
         (assert-all
-            (assert-true (graph-eval-datum g '(x)))
+            (assert-true (graph-eval-datum! g '(x)))
             (assert-equal (graph-datum-value g '(x)) 12))))
 
-    (test "graph-eval-datum (dependent)" env
+    (test "graph-eval-datum! (dependent)" env
     (let ((g (make-graph)))
         (graph-freeze! g)
         (graph-insert! g '(x) "1")
         (graph-insert! g '(y) "(+ 1 (x))")
-        (graph-eval-datum g '(x))
+        (graph-eval-datum! g '(x))
         (assert-all
-            (assert-true (graph-eval-datum g '(y)))
+            (assert-true (graph-eval-datum! g '(y)))
             (assert-equal (graph-datum-value g '(y)) 2))))
+
+    (test "graph-env independence" env
+    (let* ((g (make-graph))
+           (a (graph-env g '(a)))
+           (b (graph-env g '(b))))
+        (module-define! a 'x 15)
+        (assert-error (module-ref b 'x))))
+
+    (test "Automatic eval" env
+    (let ((g (make-graph)))
+        (graph-insert! g '(x) "1")
+        (graph-insert! g '(y) "(+ 1 (x))")
+        (assert-all
+            (assert-equal (graph-datum-value g '(x)) 1)
+            (assert-equal (graph-datum-value g '(y)) 2))))
+
+    (test "Change tracking" env
+    (let ((g (make-graph)))
+        (graph-insert! g '(x) "1")
+        (graph-insert! g '(y) "(+ 1 (x))")
+        (graph-set-expr! g '(x) "2")
+        (assert-all
+            (assert-equal (graph-datum-value g '(x)) 2)
+            (assert-equal (graph-datum-value g '(y)) 3))))
+
+    (test "Eval on insertion" env
+    (let ((g (make-graph)))
+        (graph-insert! g '(y) "(x)")
+        (graph-insert! g '(x) "1")
+        (assert-equal 1 (graph-datum-value g '(y)))))
 ))
 
 (suite "topolist.scm (topologically sorted list class)"
@@ -219,4 +284,14 @@
             (assert-equal 5 (topolist-pop! t))
             (assert-equal 1 (topolist-pop! t))
             (assert-true (null? (topolist-pop! t))))))
+
+    (test "topolist-empty?" env
+    (let ((t (make-topolist <))
+          (u (make-topolist <)))
+        (topolist-insert! t 1)
+        (assert-all
+            (assert-false (topolist-empty? t))
+            (assert-true (topolist-empty? u))
+            (assert-equal 1 (topolist-pop! t))
+            (assert-true (topolist-empty? t)))))
 ))

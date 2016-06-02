@@ -21,7 +21,7 @@
 
 (require racket/set racket/hash)
 
-(provide make-lookup lookup-record! lookup-clear!)
+(provide make-lookup lookup-record! lookup-clear! is-downstream?)
 
 ;; Makes an empty lookup table
 (define (make-lookup) (list (make-hash) (make-hash) (make-hash)))
@@ -62,10 +62,9 @@
   (hash-remove! (lookup-ref table 'forward) a)
   (hash-remove! (lookup-ref table 'upstream) a))
 
-(define (looked-up? table a b)
-  ;; Checks to see if b is in a's lookup table
-  (hash-has-key? (lookup-ref table 'forward a) b))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (looked-up-by? table a b)
-  ;; Checks to see if a was looked up by b
-  (hash-has-key? (lookup-ref table 'forward a) b))
+(define (is-downstream? table a b)
+  ;; Checks if a is downstream of b
+  ;; (i.e. checking if b is in a's upstream set)
+  (hash-has-key? (lookup-ref table 'upstream a) b))

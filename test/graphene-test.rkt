@@ -29,11 +29,17 @@
   (test-case "make-lookup"
     (check-not-false (make-lookup)))
 
-  (test-case "Recording a single lookup"
+  (test-case "is-downstream?"
     (let ([t (make-lookup)])
       (lookup-record! t 'child 'parent)
-      ;; Test something here
-      ))
+      (lookup-record! t 'grandchild 'child)
+
+      (check-true (is-downstream? t 'child 'parent))
+      (check-true (is-downstream? t 'grandchild 'parent))
+
+      (check-false (is-downstream? t 'parent 'child))
+      (check-false (is-downstream? t 'parent 'grandchild))
+      (check-false (is-downstream? t 'child 'grandchild))))
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

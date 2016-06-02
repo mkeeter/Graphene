@@ -100,10 +100,16 @@
       (set-datum-expr! d "(+ 1 2")
       (datum-eval! d)
       (check-not-false (datum-error d))))
-
 )
 
 (require rackunit/text-ui)
-(run-tests lookup-tests)
-(run-tests topolist-tests)
-(run-tests datum-tests)
+(define-syntax-rule (run-named-tests tests)
+  (begin
+    (display 'tests)(newline)(display "  ")
+    (run-tests tests)))
+
+(exit (bitwise-ior
+  (run-named-tests lookup-tests)
+  (run-named-tests topolist-tests)
+  (run-named-tests datum-tests)
+))

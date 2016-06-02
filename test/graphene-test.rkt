@@ -23,39 +23,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(require "../src/hset.rkt")
-
-(define-test-suite hset-tests
-  (test-case "make-hset"
-    (check-not-false (make-hset)))
-
-  (test-case "Inserting a value and checking it"
-    (let ([h (make-hset)])
-      (hset-insert! h 'a)
-      (check hset-has-key? h 'a)
-      (check-false (hset-has-key? h 'b))))
-
-  (test-case "Removing an inserted value"
-    (let ([h (make-hset)])
-      (hset-insert! h 'a)
-      (check hset-has-key? h 'a)
-      (hset-remove! h 'a)
-      (check-false (hset-has-key? h 'a))))
-
-  (test-case "Union of two hash-sets"
-    (let ([a (make-hset)]
-          [b (make-hset)])
-      (hset-insert! a 'x)
-      (hset-insert! b 'y)
-      (hset-insert! b 'z)
-      (hset-union! a b)
-      (check hset-has-key? a 'x)
-      (check hset-has-key? a 'y)
-      (check hset-has-key? a 'z)))
-)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (require "../src/lookup.rkt")
 
 (define-test-suite lookup-tests
@@ -137,7 +104,6 @@
 )
 
 (require rackunit/text-ui)
-(run-tests hset-tests)
 (run-tests lookup-tests)
 (run-tests topolist-tests)
 (run-tests datum-tests)

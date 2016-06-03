@@ -58,10 +58,10 @@
 
 (define (lookup-clear! table a)
   ;; Clears all lookups performed by a
-  (hash-for-each (lambda (b) (hash-remove! (lookup-ref table 'inverse b) a))
-                 (lookup-ref table 'forward a))
-  (hash-remove! (lookup-ref table 'forward) a)
-  (hash-remove! (lookup-ref table 'upstream) a))
+  (hash-for-each (lookup-ref table 'forward a)
+                 (lambda (b _) (hash-remove! (lookup-ref table 'inverse b) a)))
+  (hash-remove! (lookup-forward-ref table) a)
+  (hash-remove! (lookup-upstream-ref table) a))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

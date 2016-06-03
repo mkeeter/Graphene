@@ -19,7 +19,8 @@
 #lang racket
 
 (require "topolist.rkt" "datum.rkt" "lookup.rkt")
-(provide make-graph graph-env)
+(provide make-graph graph-env graph-insert-datum! graph-insert-subgraph!
+         graph-eval-datum! graph-freeze! graph-unfreeze!)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -105,8 +106,8 @@
         (when (datum? child)
           (namespace-set-variable-value!
             name (local-lookup (append prefix (list name)) child)
-            #f env)))
-    env)))
+            #f env))))
+    env))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -148,4 +149,6 @@
       (graph-sync! g))))
 
 (define (graph-eval-datum! g id)
-  #t )
+  ;; Evaluates the target datum
+  (lookup-clear! (graph-lookup g) id)
+  (datum-eval! (datum-ref g id) (graph-env g id)))

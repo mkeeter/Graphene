@@ -34,6 +34,7 @@
       (lookup-record! t 'child 'parent)
       (lookup-record! t 'grandchild 'child)
 
+      (check-true (is-downstream? t 'child 'child))
       (check-true (is-downstream? t 'child 'parent))
       (check-true (is-downstream? t 'grandchild 'parent))
 
@@ -46,6 +47,13 @@
       (lookup-record! t 'child 'parent)
       (check-equal? (lookup-inverse->list t 'parent) '(child))
       (check-equal? (lookup-inverse->list t 'child) '())))
+
+  (test-case "lookup-clear!"
+    (let ([t (make-lookup)])
+      (lookup-record! t 'child 'parent)
+      (lookup-clear! t 'child)
+      (check-false (is-downstream? t 'child 'parent))
+      (check-equal? (lookup-inverse->list t 'parent) '())))
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -121,6 +129,17 @@
 (define-test-suite graph-tests
   (test-case "make-graph"
     (check-not-false (make-graph)))
+
+  (test-case "graph-env"
+    (let* ([g (make-graph)]
+           [env (graph-env g '(dummy))])
+      (check-equal? (eval '(+ 1 2) env) 3)))
+
+  (test-case "graph-env datum lookup"
+    (let* ([g (make-graph)])
+      (graph-insert-datum! g '(x) "12")
+      (check-equal? (eval '(+ 1 (x)) (graph-env g '(dummy))) 13)))
+
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

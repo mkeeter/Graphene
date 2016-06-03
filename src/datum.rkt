@@ -18,7 +18,7 @@
 |#
 #lang racket
 
-(provide make-datum datum-expr datum-value datum-error
+(provide make-datum datum? datum-expr datum-value datum-error
          datum-eval! set-datum-expr!)
 
 (struct datum (expr value error) #:mutable)

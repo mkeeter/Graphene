@@ -21,7 +21,8 @@
 
 (require racket/set racket/hash)
 
-(provide make-lookup lookup-record! lookup-clear! is-downstream?)
+(provide make-lookup lookup-record! lookup-clear! is-downstream?
+         lookup-inverse->list)
 
 ;; Makes an empty lookup table
 (define (make-lookup) (list (make-hash) (make-hash) (make-hash)))
@@ -68,3 +69,7 @@
   ;; Checks if a is downstream of b
   ;; (i.e. checking if b is in a's upstream set)
   (hash-has-key? (lookup-ref table 'upstream a) b))
+
+(define (lookup-inverse->list table a)
+  ;; Returns a list of a's inverse lookups
+  (hash-map (lookup-ref table 'inverse a) (lambda (k v) k)))

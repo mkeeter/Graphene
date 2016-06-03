@@ -40,6 +40,12 @@
       (check-false (is-downstream? t 'parent 'child))
       (check-false (is-downstream? t 'parent 'grandchild))
       (check-false (is-downstream? t 'child 'grandchild))))
+
+  (test-case "lookup-inverse->list"
+    (let ([t (make-lookup)])
+      (lookup-record! t 'child 'parent)
+      (check-equal? (lookup-inverse->list t 'parent) '(child))
+      (check-equal? (lookup-inverse->list t 'child) '())))
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -108,6 +114,17 @@
       (check-not-false (datum-error d))))
 )
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(require "../src/graph.rkt")
+
+(define-test-suite graph-tests
+  (test-case "make-graph"
+    (check-not-false (make-graph)))
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (require rackunit/text-ui)
 (define-syntax-rule (run-named-tests tests)
   (begin
@@ -118,4 +135,5 @@
   (run-named-tests lookup-tests)
   (run-named-tests topolist-tests)
   (run-named-tests datum-tests)
+  (run-named-tests graph-tests)
 ))

@@ -20,7 +20,8 @@
 
 (require "topolist.rkt" "datum.rkt" "lookup.rkt")
 (provide make-graph graph-env graph-insert-datum! graph-insert-subgraph!
-         graph-eval-datum! graph-freeze! graph-unfreeze!)
+         graph-sub-ref graph-datum-ref graph-eval-datum! graph-frozen?
+         graph-freeze! graph-unfreeze!)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -28,7 +29,7 @@
 
 (define (make-graph)
   (let* ([lookup (make-lookup)]
-         [comp (lambda (a b) (is-downstream? lookup a b))]
+         [comp (lambda (a b) (lookup-downstream? lookup a b))]
          [dirty (make-topolist comp)])
     (graph (make-hash) lookup dirty #f)))
 
@@ -58,22 +59,25 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (subgraph-ref g path)
+(define (graph-sub-ref g path)
   ;; Looks up a subgraph by name, returning its hash table
   ;; Raises an error if no such name is found
   (let recurse ([name path] [hash (graph-children g)])
     (cond [(not (hash? hash)) (error "Not a subgraph" path)]
           [(null? name) hash]
-          [(hash-has-key? hash name)
-            (recurse (hash-ref hash (car name)) (cdr name))]
+          [(hash-has-key? hash (car name))
+            (recurse (cdr name) (hash-ref hash (car name)))]
           [else (error "No such subgraph" name)])))
 
-(define (datum-ref g id)
+(define (graph-datum-ref g id)
   ;; Looks up a datum by name, returning it
   (let*-values ([(prefix name) (split-id id)]
-                [(sub) (subgraph-ref g prefix)])
+                [(sub) (graph-sub-ref g prefix)])
   (if (hash-has-key? sub name)
-    (hash-ref sub name)
+    (let ([ref (hash-ref sub name)])
+      (if (datum? ref)
+        ref
+        (error "Not a datum" id)))
     (error "No such datum" id))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -101,7 +105,7 @@
                [(env) (make-base-namespace)])
 
     (hash-for-each
-      (subgraph-ref g prefix)
+      (graph-sub-ref g prefix)
       (lambda (name child)
         (when (datum? child)
           (namespace-set-variable-value!
@@ -115,7 +119,7 @@
   ;; Inserts a new datum into the graph
   ;; id must point into an existing subgraph
   (let*-values ([(prefix name) (split-id id)]
-                [(ref) (subgraph-ref g prefix)])
+                [(ref) (graph-sub-ref g prefix)])
     (if (hash-has-key? ref name)
         (error "Id already exists" id)
         (let ([d (make-datum)])
@@ -129,7 +133,7 @@
   ;; Inserts a new subgraph into the graph
   ;; id must point into an existing subgraph
   (let*-values ([(prefix name) (split-id id)]
-                [(ref) (subgraph-ref g prefix)])
+                [(ref) (graph-sub-ref g prefix)])
     (if (hash-has-key? ref name)
       (error "Id already exists" id)
       (hash-set! ref name (make-hash)))))
@@ -151,4 +155,12 @@
 (define (graph-eval-datum! g id)
   ;; Evaluates the target datum
   (lookup-clear! (graph-lookup g) id)
-  (datum-eval! (datum-ref g id) (graph-env g id)))
+  (datum-eval! (graph-datum-ref g id) (graph-env g id)))
+
+(define (graph-datum-value g id)
+  ;; Returns the value for the given datum
+  (datum-value (graph-datum-ref g id)))
+
+(define (graph-datum-error g id)
+  ;; Returns the value for the given datum
+  (datum-error (graph-datum-ref g id)))

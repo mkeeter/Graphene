@@ -29,18 +29,18 @@
   (test-case "make-lookup"
     (check-not-false (make-lookup)))
 
-  (test-case "is-downstream?"
+  (test-case "lookup-downstream?"
     (let ([t (make-lookup)])
       (lookup-record! t 'child 'parent)
       (lookup-record! t 'grandchild 'child)
 
-      (check-true (is-downstream? t 'child 'child))
-      (check-true (is-downstream? t 'child 'parent))
-      (check-true (is-downstream? t 'grandchild 'parent))
+      (check-true (lookup-downstream? t 'child 'child))
+      (check-true (lookup-downstream? t 'child 'parent))
+      (check-true (lookup-downstream? t 'grandchild 'parent))
 
-      (check-false (is-downstream? t 'parent 'child))
-      (check-false (is-downstream? t 'parent 'grandchild))
-      (check-false (is-downstream? t 'child 'grandchild))))
+      (check-false (lookup-downstream? t 'parent 'child))
+      (check-false (lookup-downstream? t 'parent 'grandchild))
+      (check-false (lookup-downstream? t 'child 'grandchild))))
 
   (test-case "lookup-inverse->list"
     (let ([t (make-lookup)])
@@ -52,7 +52,7 @@
     (let ([t (make-lookup)])
       (lookup-record! t 'child 'parent)
       (lookup-clear! t 'child)
-      (check-false (is-downstream? t 'child 'parent))
+      (check-false (lookup-downstream? t 'child 'parent))
       (check-equal? (lookup-inverse->list t 'parent) '())))
 )
 
@@ -136,10 +136,44 @@
       (check-equal? (eval '(+ 1 2) env) 3)))
 
   (test-case "graph-env datum lookup"
-    (let* ([g (make-graph)])
+    (let ([g (make-graph)])
       (graph-insert-datum! g '(x) "12")
       (check-equal? (eval '(+ 1 (x)) (graph-env g '(dummy))) 13)))
 
+  (test-case "graph-frozen and friends"
+    (let ([g (make-graph)])
+      (check-false (graph-frozen? g))
+      (graph-freeze! g)
+      (check-true (graph-frozen? g))
+      (graph-unfreeze! g)
+      (check-false (graph-frozen? g))))
+
+  (test-case "Inserting a subgraph"
+    (let ([g (make-graph)])
+      (check-exn exn:fail? (lambda () (graph-sub-ref g '(a))))
+      (check-exn exn:fail? (lambda () (graph-sub-ref g '(a b))))
+      (graph-insert-subgraph! g '(a))
+
+      (check-not-false (graph-sub-ref g '(a)))
+      (check-exn exn:fail? (lambda () (graph-datum-ref g '(a))))
+
+      (graph-insert-subgraph! g '(a b))
+      (check-not-false (graph-sub-ref g '(a b)))
+      (check-exn exn:fail? (lambda () (graph-datum-ref g '(a b))))))
+
+
+  (test-case "Inserting datums"
+    (let ([g (make-graph)])
+      (check-exn exn:fail? (lambda () (graph-datum-ref g '(a))))
+      (check-exn exn:fail? (lambda () (graph-datum-ref g '(a b))))
+
+      (graph-insert-datum! g '(a) "(+ 1 2)")
+      (check-not-false (graph-datum-ref g '(a)))
+      (check-exn exn:fail? (lambda () (graph-sub-ref g '(a))))
+
+      (graph-insert-subgraph! g '(x))
+      (graph-insert-datum! g '(x a) "3")
+      (check-not-false (graph-datum-ref g '(x a)))))
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

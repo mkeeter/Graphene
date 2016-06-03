@@ -21,7 +21,7 @@
 
 (require racket/set racket/hash)
 
-(provide make-lookup lookup-record! lookup-clear! is-downstream?
+(provide make-lookup lookup-record! lookup-clear! lookup-downstream?
          lookup-inverse->list)
 
 ;; Makes an empty lookup table
@@ -65,7 +65,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (is-downstream? table a b)
+(define (lookup-downstream? table a b)
   ;; Checks if a is downstream of b
   ;; (i.e. checking if b is in a's upstream set)
   (hash-has-key? (lookup-ref table 'upstream a) b))

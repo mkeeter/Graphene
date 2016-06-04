@@ -21,7 +21,8 @@
 (require "topolist.rkt" "datum.rkt" "lookup.rkt")
 (provide make-graph graph-env graph-insert-datum! graph-insert-subgraph!
          graph-sub-ref graph-datum-ref graph-eval-datum! graph-frozen?
-         graph-freeze! graph-unfreeze!)
+         graph-freeze! graph-unfreeze! graph-datum-value graph-datum-error
+         graph-set-datum-expr!)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -122,12 +123,9 @@
                 [(ref) (graph-sub-ref g prefix)])
     (if (hash-has-key? ref name)
         (error "Id already exists" id)
-        (let ([d (make-datum)])
-          (hash-set! ref name d)
-          (set-datum-expr! d expr)
-          (graph-dirty! g id)
-          (unless (graph-frozen? g)
-            (graph-sync! g))))))
+        (begin
+          (hash-set! ref name (make-datum))
+          (graph-set-datum-expr! g id expr)))))
 
 (define (graph-insert-subgraph! g id)
   ;; Inserts a new subgraph into the graph
@@ -151,6 +149,14 @@
              (lookup-inverse->list (graph-lookup g) head)))
       ;; Recurse until the dirty list is empty
       (graph-sync! g))))
+
+(define (graph-set-datum-expr! g id expr)
+  ;; Sets a datum's expression and triggers evaluation
+  ;; (unless the graph is frozen)
+  (set-datum-expr! (graph-datum-ref g id) expr)
+  (graph-dirty! g id)
+  (unless (graph-frozen? g)
+    (graph-sync! g)))
 
 (define (graph-eval-datum! g id)
   ;; Evaluates the target datum

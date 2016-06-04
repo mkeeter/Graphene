@@ -163,7 +163,15 @@
 (define (graph-eval-datum! g id)
   ;; Evaluates the target datum
   (lookup-clear! (graph-lookup g) id)
-  (datum-eval! (graph-datum-ref g id) (graph-env g id)))
+  (datum-eval! (graph-datum-ref g id) (graph-env g id))
+
+  ;; Error handling to record a failed lookup
+  (let ([err (graph-datum-error g id)])
+    (when (exn:fail:contract:variable? err)
+      (let*-values ([(prefix _) (split-id id)]
+                    [(var) (exn:fail:contract:variable-id err)]
+                    [(path) (append prefix (list var))])
+      (lookup-record! (graph-lookup g) id path)))))
 
 (define (graph-datum-value g id)
   ;; Returns the value for the given datum

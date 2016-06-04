@@ -21,8 +21,7 @@
 (require "topolist.rkt" "datum.rkt" "lookup.rkt")
 (provide make-graph graph-env graph-insert-datum! graph-insert-subgraph!
          graph-sub-ref graph-datum-ref graph-eval-datum! graph-frozen?
-         graph-freeze! graph-unfreeze! graph-datum-value graph-datum-error
-         graph-set-datum-expr!)
+         graph-freeze! graph-unfreeze! graph-datum-result graph-set-datum-expr!)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -100,9 +99,9 @@
       (lambda () (error "Circular reference" caller id))
       (lambda ()
         (lookup-record! (graph-lookup g) caller id)
-        (if (datum-error datum)
+        (if (not (datum-valid? datum))
             (error "Datum is invalid" datum)
-            (datum-value datum)))))
+            (datum-result datum)))))
 
   (let-values ([(prefix _) (split-id caller)]
                [(env) (make-base-namespace)])
@@ -166,17 +165,13 @@
   (datum-eval! (graph-datum-ref g id) (graph-env g id))
 
   ;; Error handling to record a failed lookup
-  (let ([err (graph-datum-error g id)])
+  (let ([err (graph-datum-result g id)])
     (when (exn:fail:contract:variable? err)
       (let*-values ([(prefix _) (split-id id)]
                     [(var) (exn:fail:contract:variable-id err)]
                     [(path) (append prefix (list var))])
       (lookup-record! (graph-lookup g) id path)))))
 
-(define (graph-datum-value g id)
+(define (graph-datum-result g id)
   ;; Returns the value for the given datum
-  (datum-value (graph-datum-ref g id)))
-
-(define (graph-datum-error g id)
-  ;; Returns the value for the given datum
-  (datum-error (graph-datum-ref g id)))
+  (datum-result (graph-datum-ref g id)))

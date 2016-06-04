@@ -106,25 +106,25 @@
       ;; On the second run, the result hasn't changed
       (check-false (datum-eval! d))))
 
-  (test-case "datum-value"
+  (test-case "datum-result"
     (let ([d (make-datum)])
       (set-datum-expr! d "12")
       (datum-eval! d)
-      (check-equal? (datum-value d) 12)
+      (check-equal? (datum-result d) 12)
 
       (set-datum-expr! d "(+ 1 2)")
       (datum-eval! d)
-      (check-equal? (datum-value d) 3)))
+      (check-equal? (datum-result d) 3)))
 
-  (test-case "datum-error"
+  (test-case "datum-valid?"
     (let ([d (make-datum)])
       (set-datum-expr! d "12")
       (datum-eval! d)
-      (check-false (datum-error d))
+      (check-true (datum-valid? d))
 
       (set-datum-expr! d "(+ 1 2")
       (datum-eval! d)
-      (check-not-false (datum-error d))))
+      (check-false (datum-valid? d))))
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

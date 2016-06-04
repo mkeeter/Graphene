@@ -54,7 +54,8 @@
   (hash-set! (lookup-ref table 'forward a) b #t)
   (hash-set! (lookup-ref table 'inverse b) a #t)
   (hash-union! (lookup-ref table 'upstream a)
-               (lookup-ref table 'upstream b)))
+               (lookup-ref table 'upstream b)
+               #:combine/key (lambda _ #t)))
 
 (define (lookup-clear! table a)
   ;; Clears all lookups performed by a

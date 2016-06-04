@@ -48,6 +48,11 @@
       (check-equal? (lookup-inverse->list t 'parent) '(child))
       (check-equal? (lookup-inverse->list t 'child) '())))
 
+  (test-case "lookup-record! multiple calls"
+    (let ([t (make-lookup)])
+      (lookup-record! t 'child 'parent)
+      (lookup-record! t 'child 'parent)))
+
   (test-case "lookup-clear!"
     (let ([t (make-lookup)])
       (lookup-record! t 'child 'parent)

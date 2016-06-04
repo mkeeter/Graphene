@@ -96,11 +96,13 @@
     ;; Returns a thunk that records that the caller looked up id,
     ;; then attempts to return the value from datum.
     ;;   id should be a full path to the target datum
-    (lambda ()
-      (lookup-record! (graph-lookup g) caller id)
-      (if (datum-error datum)
-          (error "Datum is invalid" datum)
-          (datum-value datum))))
+    (if (lookup-downstream? (graph-lookup g) id caller)
+      (lambda () (error "Circular reference" caller id))
+      (lambda ()
+        (lookup-record! (graph-lookup g) caller id)
+        (if (datum-error datum)
+            (error "Datum is invalid" datum)
+            (datum-value datum)))))
 
   (let-values ([(prefix _) (split-id caller)]
                [(env) (make-base-namespace)])

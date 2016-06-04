@@ -179,6 +179,27 @@
       (graph-insert-subgraph! g '(x))
       (graph-insert-datum! g '(x a) "3")
       (check-not-false (graph-datum-ref g '(x a)))))
+
+  (test-case "Auto-eval (single level)"
+    (let ([g (make-graph)])
+      (graph-insert-datum! g '(a) "(+ 1 (b))")
+      (graph-insert-datum! g '(b) "13")
+      (graph-insert-datum! g '(c) "(+ 1 (a))")
+
+      (check-equal? (graph-result g '(a)) 14)
+      (check-equal? (graph-result g '(b)) 13)
+      (check-equal? (graph-result g '(c)) 15)))
+
+  (test-case "Change tracking"
+    (let ([g (make-graph)])
+      (graph-insert-datum! g '(a) "(+ 1 (b))")
+      (graph-insert-datum! g '(b) "13")
+      (graph-insert-datum! g '(c) "(+ 1 (a))")
+      (graph-set-expr! g '(b) "20")
+
+      (check-equal? (graph-result g '(a)) 21)
+      (check-equal? (graph-result g '(b)) 20)
+      (check-equal? (graph-result g '(c)) 22)))
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

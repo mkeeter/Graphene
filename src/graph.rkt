@@ -21,7 +21,7 @@
 (require "topolist.rkt" "datum.rkt" "lookup.rkt")
 (provide make-graph graph-env graph-insert-datum! graph-insert-subgraph!
          graph-sub-ref graph-datum-ref graph-eval-datum! graph-frozen?
-         graph-freeze! graph-unfreeze! graph-datum-result graph-set-datum-expr!)
+         graph-freeze! graph-unfreeze! graph-result graph-set-expr!)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -126,7 +126,7 @@
         (error "Id already exists" id)
         (begin
           (hash-set! ref name (make-datum))
-          (graph-set-datum-expr! g id expr)))))
+          (graph-set-expr! g id expr)))))
 
 (define (graph-insert-subgraph! g id)
   ;; Inserts a new subgraph into the graph
@@ -151,7 +151,7 @@
       ;; Recurse until the dirty list is empty
       (graph-sync! g))))
 
-(define (graph-set-datum-expr! g id expr)
+(define (graph-set-expr! g id expr)
   ;; Sets a datum's expression and triggers evaluation
   ;; (unless the graph is frozen)
   (set-datum-expr! (graph-datum-ref g id) expr)
@@ -165,13 +165,13 @@
   (datum-eval! (graph-datum-ref g id) (graph-env g id))
 
   ;; Error handling to record a failed lookup
-  (let ([err (graph-datum-result g id)])
+  (let ([err (graph-result g id)])
     (when (exn:fail:contract:variable? err)
       (let*-values ([(prefix _) (split-id id)]
                     [(var) (exn:fail:contract:variable-id err)]
                     [(path) (append prefix (list var))])
       (lookup-record! (graph-lookup g) id path)))))
 
-(define (graph-datum-result g id)
+(define (graph-result g id)
   ;; Returns the value for the given datum
   (datum-result (graph-datum-ref g id)))

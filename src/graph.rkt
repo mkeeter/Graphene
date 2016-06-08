@@ -91,7 +91,7 @@
   ;;
   ;;   caller should be a full path to a datum in the graph
 
-  (define (local-lookup id datum)
+  (define (datum-lookup id datum)
     ;; Returns a thunk that records that the caller looked up id,
     ;; then attempts to return the value from datum.
     ;;   id should be a full path to the target datum
@@ -103,16 +103,21 @@
             (error "Datum is invalid" datum)
             (datum-result datum)))))
 
+  ;; Returns a thunk that looks up a variable in the given subgraph hash
+  (define (subgraph-lookup id subgraph) #f)
+
   (let-values ([(prefix _) (split-id caller)]
                [(env) (make-base-namespace)])
 
     (hash-for-each
       (graph-sub-ref g prefix)
       (lambda (name child)
-        (when (datum? child)
-          (namespace-set-variable-value!
-            name (local-lookup (append prefix (list name)) child)
-            #f env))))
+        (let ([id (append prefix (list name))])
+        (namespace-set-variable-value! name
+          (cond [(datum? child) (datum-lookup id child)]
+                [(hash? child) (subgraph-lookup id child)]
+                [else (error "Invalid item in graph" name child)])
+          #f env))))
     env))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

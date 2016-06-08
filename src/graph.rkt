@@ -104,8 +104,21 @@
             (datum-result datum)))))
 
   ;; Returns a thunk that looks up a variable in the given subgraph hash
-  (define (subgraph-lookup id subgraph) #f)
+  (define (subgraph-lookup id subgraph)
+    (let ([children (make-hash)])
 
+      ;; Add a datum-lookup thunk for every datum in the subgraph
+      (hash-for-each subgraph
+        (lambda (name child)
+          (let ([id (append id (list name))])
+            (when (datum? child)
+              ;; Only expose datums that are released to parent
+              (hash-set! children name (datum-lookup id child))))))
+
+      ;; The top-level thunk just calls the function in the hash
+      (lambda (key) ((hash-ref children key)))))
+
+  ;; Find the subgraph prefix of the caller variable
   (let-values ([(prefix _) (split-id caller)]
                [(env) (make-base-namespace)])
 

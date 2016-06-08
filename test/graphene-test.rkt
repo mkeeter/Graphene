@@ -166,7 +166,6 @@
       (check-not-false (graph-sub-ref g '(a b)))
       (check-exn exn:fail? (lambda () (graph-datum-ref g '(a b))))))
 
-
   (test-case "Inserting datums"
     (let ([g (make-graph)])
       (check-exn exn:fail? (lambda () (graph-datum-ref g '(a))))
@@ -200,6 +199,18 @@
       (check-equal? (graph-result g '(a)) 21)
       (check-equal? (graph-result g '(b)) 20)
       (check-equal? (graph-result g '(c)) 22)))
+
+  (test-case "Change tracking in a subgraph"
+    (let ([g (make-graph)])
+      (graph-insert-subgraph! g '(sub))
+      (graph-insert-datum! g '(sub a) "(+ 1 (b))")
+      (graph-insert-datum! g '(sub b) "13")
+      (graph-insert-datum! g '(sub c) "(+ 1 (a))")
+      (graph-set-expr! g '(sub b) "20")
+
+      (check-equal? (graph-result g '(sub a)) 21)
+      (check-equal? (graph-result g '(sub b)) 20)
+      (check-equal? (graph-result g '(sub c)) 22)))
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

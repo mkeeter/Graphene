@@ -125,6 +125,31 @@
       (set-datum-expr! d "(+ 1 2")
       (datum-eval! d)
       (check-false (datum-valid? d))))
+
+  (test-case "Multiple forms in datum"
+    (let ([d (make-datum)])
+      (set-datum-expr! d "(+ 1 2)(+ 3 4)")
+      (datum-eval! d)
+      (check-false (datum-valid? d))))
+
+  (test-case "datum-is-output?"
+    (let ([d (make-datum)])
+      (set-datum-expr! d "(output (+ 1 2))")
+      (check-true (datum-is-output? d))
+      (set-datum-expr! d "(+ 1 2)")
+      (check-false (datum-is-output? d))
+      (set-datum-expr! d "(+ 1 2")
+      (check-false (datum-is-output? d))))
+
+  (test-case "input and output commands"
+    (let ([d (make-datum)])
+      (set-datum-expr! d "(output (+ 1 2))")
+      (datum-eval! d)
+      (check-equal? (datum-result d) 3)
+
+      (set-datum-expr! d "(input (- 1 2))")
+      (datum-eval! d)
+      (check-equal? (datum-result d) -1)))
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -218,7 +243,7 @@
 (require rackunit/text-ui)
 (define-syntax-rule (run-named-tests tests)
   (begin
-    (display 'tests)(newline)(display "  ")
+    (printf "~a\n    " 'tests)
     (run-tests tests)))
 
 (exit (bitwise-ior

@@ -19,7 +19,8 @@
 #lang racket
 
 (provide make-datum datum? datum-expr datum-result
-         datum-eval! set-datum-expr! datum-valid?)
+         datum-eval! set-datum-expr! datum-valid?
+         datum-is-output? datum-is-input?)
 
 (struct datum (expr result) #:mutable)
 (define (make-datum) (datum "" eof))
@@ -30,16 +31,43 @@
   ;; Otherwise, sets value to #nil and error to the error
   ;; Returns true if value has changed, false otherwise
   (let ([prev (datum-result d)]
-        [env (or env (make-base-namespace))])
+        [env (or env (make-base-namespace))]
+        [input (open-input-string (datum-expr d))]
+        [id (lambda (i) i)])
+
+  ;; Insert input and output as dummy functions
+  ;; (since they are used as tags in datum expressions)
+  (namespace-set-variable-value! 'input  id #f env)
+  (namespace-set-variable-value! 'output id #f env)
+
   (with-handlers ([exn:fail?
     ;; Error handler for all normal errors
     (lambda (v) (set-datum-result! d v))])
     ;; Try to evaluate the datum's expression
-    (let ([out (eval (read (open-input-string (datum-expr d))) env)])
-      (set-datum-result! d out)))
+    (let ([expr (read input)])
+      ;; If there are multiple forms in the expression, raise an error
+      (when (not (equal? (read input) eof))
+            (error "Too many forms" (datum-expr d)))
+      ;; Otherwise attempt to eval and store the result
+      (set-datum-result! d (eval expr env))))
   ;; Return a boolean indicating whether the value has changed
   (not (equal? prev (datum-result d)))))
 
 (define (datum-valid? d)
   ;; Checks to see if the given datum is valid
   (not (exn:fail? (datum-result d))))
+
+(define (datum-starts-with? d sym)
+  ;; Checks if a datum starts with a particular symbol
+  ;; If the datum's expression is incomplete, returns false
+  (let ([input (open-input-string (datum-expr d))])
+    (with-handlers ([exn:fail? (lambda (v) #f)])
+      (equal? (car (read input)) sym))))
+
+(define (datum-is-output? d)
+  ;; Checks to see if the datum is an output form
+  (datum-starts-with? d 'output))
+
+(define (datum-is-input? d)
+  ;; Checks to see if the datum is an output form
+  (datum-starts-with? d 'input))

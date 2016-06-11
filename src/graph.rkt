@@ -54,8 +54,8 @@
 
 (define (split-id id)
   ;; Splits an identifier into a prefix and name
-  (values (take id (- (length id) 1))
-          (last id)))
+  (let-values ([(prefix name) (split-at-right id 1)])
+    (values prefix (car name))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -82,7 +82,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (graph-env g caller)
+(define (graph-env g caller [input #f])
   ;; Returns a namespace in which the caller should be executed
   ;;
   ;; The namespace includes all datums in the same subgraph as caller
@@ -90,6 +90,8 @@
   ;; by the caller
   ;;
   ;;   caller should be a full path to a datum in the graph
+  ;;   input is true if the datum is an input
+  ;;     If this is the case, it executes in the parent's environment
 
   (define (datum-lookup id datum)
     ;; Returns a thunk that records that the caller looked up id,
@@ -111,8 +113,8 @@
       (hash-for-each subgraph
         (lambda (name child)
           (let ([id (append id (list name))])
-            (when (datum? child)
-              ;; Only expose datums that are released to parent
+            ;; Only expose datums that are tagged as outputs
+            (when (and (datum? child) (datum-is-output? child))
               (hash-set! children name (datum-lookup id child))))))
 
       ;; The top-level thunk just calls the function in the hash
@@ -121,6 +123,10 @@
   ;; Find the subgraph prefix of the caller variable
   (let-values ([(prefix _) (split-id caller)]
                [(env) (make-base-namespace)])
+
+    ;; Execute input datums in parent graph environment
+    (when input
+      (set! prefix (take prefix (- (length prefix) 1))))
 
     (hash-for-each
       (graph-sub-ref g prefix)
@@ -131,6 +137,7 @@
                 [(hash? child) (subgraph-lookup id child)]
                 [else (error "Invalid item in graph" name child)])
           #f env))))
+
     env))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -180,7 +187,8 @@
 (define (graph-eval-datum! g id)
   ;; Evaluates the target datum
   (lookup-clear! (graph-lookup g) id)
-  (datum-eval! (graph-datum-ref g id) (graph-env g id))
+  (let ([d (graph-datum-ref g id)])
+    (datum-eval! d (graph-env g id (datum-is-input? d))))
 
   ;; Error handling to record a failed lookup
   (let ([err (graph-result g id)])

@@ -56,11 +56,11 @@
 (define (topolist-insert! t key)
   ;; Inserts the given key into the list
 
-  (define (splice! head key)
+  (define (splice! head)
     ;; Inserts the given key between the head and tail of the list
     (set-mcdr! head (mcons key (mcdr head))))
 
-  (define (recurse head key)
+  (define (recurse head)
     ;; Helper function to walk the list, inserting the key after
     ;; the last element for which (func key (car head)) is true
     (cond
@@ -69,16 +69,16 @@
       [(null? head) #f]
 
       ;; Check to see if the key got added later in the list
-      [(recurse (mcdr head) key) #t]
+      [(recurse (mcdr head)) #t]
 
       ;; Otherwise, check to see if the key should be added
       ;; right after the head node, returning true if so
       [((topolist-comp t) key (mcar head))
-          (splice! head key)
+          (splice! head)
           #t]
       [else #f]))
 
   ;; If we didn't insert the pair later in the list, it will have
   ;; to be inserted at the head of the list
-  (unless (recurse (topolist-list t) key)
-    (splice! t key)))
+  (unless (recurse (topolist-list t))
+    (splice! t)))

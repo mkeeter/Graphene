@@ -115,6 +115,25 @@
       ;; On the second run, the result hasn't changed
       (check-false (datum-eval! d))))
 
+  (test-case "datum-eval! (different expression, same value)"
+    (let ([d (make-datum)])
+      (set-datum-expr! d "12")
+      (check-true (datum-eval! d))
+      (set-datum-expr! d "(+ 10 2)")
+      (check-false (datum-eval! d))
+      (set-datum-expr! d "(+ 10 3)")
+      (check-true (datum-eval! d))))
+
+  (test-case "datum-eval! going from error to error"
+    (let ([d (make-datum)])
+      ;; On the first run, the value goes from #f to an error
+      (set-datum-expr! d "(+ 1 a)")
+      (check-true (datum-eval! d))
+      ;; On the first run, the value goes from an error to an error
+      ;; On the second run, the result hasn't changed
+      (set-datum-expr! d "(+ 1 b)")
+      (check-false (datum-eval! d))))
+
   (test-case "datum-result"
     (let ([d (make-datum)])
       (set-datum-expr! d "12")

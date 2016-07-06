@@ -50,8 +50,14 @@
             (error "Too many forms" (datum-expr d)))
       ;; Otherwise attempt to eval and store the result
       (set-datum-result! d (eval expr env))))
-  ;; Return a boolean indicating whether the value has changed
-  (not (equal? prev (datum-result d)))))
+
+  ;; Check for changes, either of the form
+  ;;    value -> error
+  ;;    value -> different value
+  (let ([res (datum-result d)])
+    (not (if (exn:fail? res)
+      (exn:fail? prev)
+      (eq? prev res))))))
 
 (define (datum-valid? d)
   ;; Checks to see if the given datum is valid

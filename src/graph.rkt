@@ -98,7 +98,9 @@
     ;; then attempts to return the value from datum.
     ;;   id should be a full path to the target datum
     (if (lookup-downstream? (graph-lookup g) id caller)
-      (lambda () (error "Circular reference" caller id))
+      (lambda ()
+        (lookup-record! (graph-lookup g) caller id)
+        (error "Circular reference" caller id))
       (lambda ()
         (lookup-record! (graph-lookup g) caller id)
         (if (not (datum-valid? datum))

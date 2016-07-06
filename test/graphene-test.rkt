@@ -83,6 +83,15 @@
       (check-equal? (topolist-pop! t) 10)
       (check-equal? (topolist-pop! t) 5)
       (check-equal? (topolist-pop! t) 1)))
+
+    (let ([t (make-topolist <)])
+      (topolist-insert! t 1)
+      (topolist-insert! t 10)
+      (topolist-insert! t 5)
+      (topolist-insert! t 5)
+      (check-equal? (topolist-pops! t) '(10))
+      (check-equal? (topolist-pops! t) '(5 5))
+      (check-equal? (topolist-pops! t) '(1)))
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -20,7 +20,8 @@
 
 (require scheme/mpair)
 
-(provide make-topolist topolist-empty? topolist-insert! topolist-pop!)
+(provide make-topolist topolist-empty? topolist-insert! topolist-pop!
+         topolist-pops!)
 
 (define (make-topolist comp)
   (mcons comp '()))
@@ -34,11 +35,23 @@
   ;; Checks if the given list is empty
   (null? (topolist-list t)))
 
+(define (topolist-peek t)
+  ;; Returns the item at the front of the list
+  (mcar (topolist-list t)))
+
 (define (topolist-pop! t)
   ;; Pops an item from the fromt of the list, removing and returning it
   (let ([out (mcar (mcdr t))])
     (set-mcdr! t (mcdr (topolist-list t)))
     out))
+
+(define (topolist-pops! t)
+  (define (recurse out)
+    (if (or (topolist-empty? t)
+            ((topolist-comp t)  (topolist-peek t) (car out)))
+      out
+      (recurse (cons (topolist-pop! t) out))))
+  (recurse (list (topolist-pop! t))))
 
 (define (topolist-insert! t key)
   ;; Inserts the given key into the list

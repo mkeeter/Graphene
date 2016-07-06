@@ -219,6 +219,14 @@
       (check-not-false (graph-sub-ref g '(a b)))
       (check-exn exn:fail? (lambda () (graph-datum-ref g '(a b))))))
 
+  (test-case "Validity of recursive loops"
+    (let ([g (make-graph)])
+      (graph-insert-datum! g '(a) "(+ 1 (b))")
+      (graph-insert-datum! g '(b) "(+ 1 (a))")
+
+      (check-false (datum-valid? (graph-datum-ref g '(a))))
+      (check-false (datum-valid? (graph-datum-ref g '(b))))))
+
   (test-case "Inserting datums"
     (let ([g (make-graph)])
       (check-exn exn:fail? (lambda () (graph-datum-ref g '(a))))
@@ -264,6 +272,26 @@
       (check-equal? (graph-result g '(sub a)) 21)
       (check-equal? (graph-result g '(sub b)) 20)
       (check-equal? (graph-result g '(sub c)) 22)))
+
+  (test-case "Breaking recursive loops"
+    (define (setup)
+      (let ([g (make-graph)])
+        (graph-insert-datum! g '(a) "(+ 1 (b))")
+        (graph-insert-datum! g '(b) "(+ 1 (a))")
+
+        (check-false (datum-valid? (graph-datum-ref g '(a))))
+        (check-false (datum-valid? (graph-datum-ref g '(b))))
+        g))
+    (let ([g (setup)])
+      (graph-set-expr! g '(b) "0")
+      (check-equal? (graph-result g '(a)) 1)
+      (check-equal? (graph-result g '(b)) 0)
+    )
+    (let ([g (setup)])
+      (graph-set-expr! g '(a) "0")
+      (check-equal? (graph-result g '(a)) 0)
+      (check-equal? (graph-result g '(b)) 1)
+    ))
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

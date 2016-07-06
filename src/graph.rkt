@@ -188,17 +188,18 @@
 
 (define (graph-eval-datum! g id)
   ;; Evaluates the target datum
+  ;; Returns #t if the value changed, #f otherwise
   (lookup-clear! (graph-lookup g) id)
-  (let ([d (graph-datum-ref g id)])
-    (datum-eval! d (graph-env g id (datum-is-input? d))))
-
-  ;; Error handling to record a failed lookup
-  (let ([err (graph-result g id)])
-    (when (exn:fail:contract:variable? err)
-      (let*-values ([(prefix _) (split-id id)]
-                    [(var) (exn:fail:contract:variable-id err)]
-                    [(path) (append prefix (list var))])
-      (lookup-record! (graph-lookup g) id path)))))
+  (let* ([d (graph-datum-ref g id)]
+         [env (graph-env g id (datum-is-input? d))]
+         [changed (datum-eval! d env)]
+         [res (graph-result g id)])
+      (when (exn:fail:contract:variable? res)
+        (let*-values ([(prefix _) (split-id id)]
+                      [(var) (exn:fail:contract:variable-id res)]
+                      [(path) (append prefix (list var))])
+        (lookup-record! (graph-lookup g) id path)))
+      changed))
 
 (define (graph-result g id)
   ;; Returns the value for the given datum

@@ -128,7 +128,7 @@
 
     ;; Execute input datums in parent graph environment
     (when input
-      (set! prefix (take prefix (- (length prefix) 1))))
+      (set! prefix (drop-right prefix 1)))
 
     (hash-for-each
       (graph-sub-ref g prefix)

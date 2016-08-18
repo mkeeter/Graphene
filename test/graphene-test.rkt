@@ -282,6 +282,22 @@
       (check-equal? (graph-result g '(a)) 0)
       (check-equal? (graph-result g '(b)) 1)
     ))
+
+  (test-case "Looking up a parent datum"
+    (let ([g (make-graph)])
+      (graph-insert-subgraph! g '(sub))
+      (graph-insert-datum! g '(b) "12")
+      (graph-insert-datum! g '(sub a) "(input (+ 1 (b)))")
+      (check-equal? (graph-result g '(sub a)) 13)
+  ))
+
+  (test-case "Change tracking from parent datum"
+    (let ([g (make-graph)])
+      (graph-insert-subgraph! g '(sub))
+      (graph-insert-datum! g '(sub a) "(input (+ 1 (b)))")
+      (graph-insert-datum! g '(b) "12")
+      (check-equal? (graph-result g '(sub a)) 13)
+  ))
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

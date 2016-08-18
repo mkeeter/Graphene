@@ -195,6 +195,7 @@
          [env (graph-env g id (datum-is-input? d))]
          [changed (datum-eval! d env)]
          [res (graph-result g id)])
+
       (when (exn:fail:contract:variable? res)
         (let*-values ([(prefix _) (split-id id)]
                       [(var) (exn:fail:contract:variable-id res)]

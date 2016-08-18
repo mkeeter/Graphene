@@ -94,7 +94,7 @@
   ;;   input is true if the datum is an input
   ;;     If this is the case, it executes in the parent's environment
 
-  (define (datum-lookup id datum)
+  (define (datum-lookup-thunk id datum)
     ;; Returns a thunk that records that the caller looked up id,
     ;; then attempts to return the value from datum.
     ;;   id should be a full path to the target datum
@@ -109,7 +109,7 @@
             (datum-result datum)))))
 
   ;; Returns a thunk that looks up a variable in the given subgraph hash
-  (define (subgraph-lookup id subgraph)
+  (define (subgraph-lookup-thunk id subgraph)
     (let ([children (make-hash)])
 
       ;; Add a datum-lookup thunk for every datum in the subgraph
@@ -118,7 +118,7 @@
           (let ([id (append id (list name))])
             ;; Only expose datums that are tagged as outputs
             (when (and (datum? child) (datum-is-output? child))
-              (hash-set! children name (datum-lookup id child))))))
+              (hash-set! children name (datum-lookup-thunk id child))))))
 
       ;; The top-level thunk just calls the function in the hash
       (lambda (key) ((hash-ref children key)))))
@@ -136,8 +136,8 @@
       (lambda (name child)
         (let ([id (append prefix (list name))])
         (namespace-set-variable-value! name
-          (cond [(datum? child) (datum-lookup id child)]
-                [(hash? child) (subgraph-lookup id child)]
+          (cond [(datum? child) (datum-lookup-thunk id child)]
+                [(hash? child) (subgraph-lookup-thunk id child)]
                 [else (error "Invalid item in graph" name child)])
           #f env))))
 

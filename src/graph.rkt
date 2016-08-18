@@ -196,10 +196,15 @@
          [changed (datum-eval! d env)]
          [res (graph-result g id)])
 
+      ;; If evaluation failed when looking up a (missing) value, record the
+      ;; attempted lookup so that if the value is created, this datum can be
+      ;; re-evaluated.
       (when (exn:fail:contract:variable? res)
         (let*-values ([(prefix _) (split-id id)]
                       [(var) (exn:fail:contract:variable-id res)]
-                      [(path) (append prefix (list var))])
+                      [(path) (append (if (datum-is-input? d)
+                                          (drop-right prefix 1) prefix)
+                                      (list var))])
         (lookup-record! (graph-lookup g) id path)))
       changed))
 

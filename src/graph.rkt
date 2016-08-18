@@ -121,7 +121,11 @@
               (hash-set! children name (datum-lookup-thunk id child))))))
 
       ;; The top-level thunk just calls the function in the hash
-      (lambda (key) ((hash-ref children key)))))
+      (lambda (key)
+        (if (hash-has-key? children key)
+          ((hash-ref children key))
+          (let ([path (append id (list key))])
+            (lookup-record! (graph-lookup g) caller path))))))
 
   ;; Find the subgraph prefix of the caller variable
   (let-values ([(prefix _) (split-id caller)]

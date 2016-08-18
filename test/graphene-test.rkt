@@ -188,16 +188,6 @@
   (test-case "make-graph"
     (check-not-false (make-graph)))
 
-  (test-case "graph-env"
-    (let* ([g (make-graph)]
-           [env (graph-env g '(dummy))])
-      (check-equal? (eval '(+ 1 2) env) 3)))
-
-  (test-case "graph-env datum lookup"
-    (let ([g (make-graph)])
-      (graph-insert-datum! g '(x) "12")
-      (check-equal? (eval '(+ 1 (x)) (graph-env g '(dummy))) 13)))
-
   (test-case "graph-frozen and friends"
     (let ([g (make-graph)])
       (check-false (graph-frozen? g))

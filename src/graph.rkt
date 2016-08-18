@@ -19,9 +19,10 @@
 #lang racket
 
 (require "topolist.rkt" "datum.rkt" "lookup.rkt")
-(provide make-graph graph-env graph-insert-datum! graph-insert-subgraph!
-         graph-sub-ref graph-datum-ref graph-eval-datum! graph-frozen?
-         graph-freeze! graph-unfreeze! graph-result graph-set-expr!)
+(provide make-graph graph-insert-datum! graph-insert-subgraph!
+         graph-sub-ref graph-datum-ref
+         graph-frozen? graph-freeze! graph-unfreeze!
+         graph-result graph-set-expr!)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

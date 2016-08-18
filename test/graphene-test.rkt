@@ -289,14 +289,40 @@
       (graph-insert-datum! g '(b) "12")
       (graph-insert-datum! g '(sub a) "(input (+ 1 (b)))")
       (check-equal? (graph-result g '(sub a)) 13)
+      (graph-set-expr! g '(b) "15")
+      (check-equal? (graph-result g '(sub a)) 16)
   ))
 
-  (test-case "Change tracking from parent datum"
+  (test-case "Datum creation in parent graph"
     (let ([g (make-graph)])
       (graph-insert-subgraph! g '(sub))
       (graph-insert-datum! g '(sub a) "(input (+ 1 (b)))")
       (graph-insert-datum! g '(b) "12")
       (check-equal? (graph-result g '(sub a)) 13)
+  ))
+
+  (test-case "Getting output from a subgraph"
+    (let ([g (make-graph)])
+      (graph-insert-subgraph! g '(sub))
+      (graph-insert-datum! g '(sub a) "(output 15)")
+      (check-equal? (graph-result g '(sub a)) 15)
+
+      (graph-insert-datum! g '(b) "(+ 1 (sub 'a))")
+      (check-equal? (graph-result g '(b)) 16)
+
+      (graph-set-expr! g '(sub a) "(output 16)")
+      (check-equal? (graph-result g '(b)) 17)
+
+      (graph-set-expr! g '(sub a) "1") ; Not an output anymore!
+      (check-true (exn:fail? (graph-result g '(b))))
+  ))
+
+  (test-case "Inserting an output into a subgraph"
+    (let ([g (make-graph)])
+      (graph-insert-subgraph! g '(sub))
+      (graph-insert-datum! g '(b) "(+ 1 (sub 'a))")
+      (graph-insert-datum! g '(sub a) "(output 15)")
+      (check-equal? (graph-result g '(b)) 16)
   ))
 )
 

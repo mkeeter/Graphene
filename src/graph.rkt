@@ -74,12 +74,12 @@
   ;; Looks up a datum by name, returning it
   (let*-values ([(prefix name) (split-id id)]
                 [(sub) (graph-sub-ref g prefix)])
-  (if (hash-has-key? sub name)
+    (unless (hash-has-key? sub name)
+      (error "No such datum" id))
     (let ([ref (hash-ref sub name)])
-      (if (datum? ref)
-        ref
-        (error "Not a datum" id)))
-    (error "No such datum" id))))
+      (unless (datum? ref)
+        (error "Not a datum" id))
+      ref)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

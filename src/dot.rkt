@@ -1,0 +1,100 @@
+#|
+    Copyright (C) 2016 Matthew Keeter  <matt.j.keeter@gmail.com>
+
+    This file is part of Graphene.
+
+    Graphene is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 2 of the License, or
+    (at your option) any later version.
+
+    Graphene is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Graphene.  If not, see <http://www.gnu.org/licenses/>.
+|#
+#lang racket
+
+(require "datum.rkt" "graph.rkt")
+(provide graph->dot)
+
+(define (format-indented indent fmt . args)
+  (let* ([indent (make-string indent #\ )]
+         [newline (string-append "\n" indent)]
+         [fmt (string-replace (string-append indent fmt) "\n" newline)])
+  (apply format (cons fmt args))))
+
+(define (id->string id)
+  (string-join (map symbol->string id) "_"))
+
+(define (insert-newlines str)
+  (let recurse ([str (string-split str " ")])
+    (if (< (length str) 5) (string-join str " ")
+      (string-append (string-join (take str 5) " ")
+                     "<br/>" (recurse (drop str 5))))))
+
+(define (format-exn exn)
+  (let recurse ([str (exn-message exn)]
+                [matches '(("\n" "<br/>")
+                           ("UNKNOWN::0: " "")
+                           ("`" "'"))])
+    (if (empty? matches) str
+      (recurse (string-replace str (caar matches) (cadar matches))
+               (cdr matches)))))
+
+(define (datum->dot id d [indent 0])
+  ;; id is the full path to the datum d
+  (let ([name (id->string id)]
+        [res (datum-result d)])
+    (format-indented indent "~a [label=<<table border=\"0\" cellborder=\"1\" cellspacing=\"0\" bgcolor=\"~a\">
+    <tr><td>~a</td></tr>
+    <tr><td balign=\"left\" port=\"~a\">~a</td></tr>
+    <tr><td balign=\"left\">~a</td></tr></table>>];"
+      name
+      (if (exn:fail? res) "#ffdddd" "#ffffff")
+      (last id)
+      name
+      (string-replace (datum-expr d) "\n" "<br/>")
+      (if (exn:fail? res) (format-exn res) res)
+      )))
+
+(define (subgraph->dot g [name '()] [indent 2])
+  (string-join
+    (hash-map g
+      (lambda (k v)
+        (let ([id (append name (list k))])
+        (cond [(datum? v) (datum->dot id v indent)]
+              [(hash? v)
+                (format-indented indent "subgraph cluster_~a {
+  label=\"~a\"
+~a
+}"
+                (id->string id) k (subgraph->dot v id (+ indent 2)))
+              ]))))
+    "\n"))
+
+(define (graph->dot g)
+  (format "digraph {
+  rankdir=LR;
+  node [shape=plaintext, fontname=\"Consolas\"]
+  graph [fontname=\"Consolas\"]
+~a
+}"
+  (subgraph->dot (graph-sub-ref g '()))))
+
+(define g (make-graph))
+(graph-insert-datum! g '(a) "(+ 1 2)")
+(graph-insert-subgraph! g '(sub))
+(graph-insert-datum! g '(sub a) "(+ 3 2)")
+(graph-insert-datum! g '(sub b) "(+ 1")
+(graph-insert-datum! g '(sub c) "(+ 1 \"omg\")")
+(graph-insert-datum! g '(b) "(range 10)")
+(graph-insert-datum! g '(c)
+"(let ([x 10]
+      [y 10])
+  (+ x y))")
+(display (graph->dot g))
+(newline)

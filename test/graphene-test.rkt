@@ -220,14 +220,18 @@
   (test-case "Inserting datums"
     (let ([g (make-graph)])
       (check-exn exn:fail? (lambda () (graph-datum-ref g '(a))))
+      (check-false (graph-has-datum? g '(a)))
       (check-exn exn:fail? (lambda () (graph-datum-ref g '(a b))))
+      (check-false (graph-has-datum? g '(a b)))
 
       (graph-insert-datum! g '(a) "(+ 1 2)")
       (check-not-false (graph-datum-ref g '(a)))
       (check-exn exn:fail? (lambda () (graph-sub-ref g '(a))))
+      (check-true (graph-has-datum? g '(a)))
 
       (graph-insert-subgraph! g '(x))
       (graph-insert-datum! g '(x a) "3")
+      (check-true (graph-has-datum? g '(x a)))
       (check-not-false (graph-datum-ref g '(x a)))))
 
   (test-case "Auto-eval (single level)"

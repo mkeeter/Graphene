@@ -20,9 +20,10 @@
 
 (require "topolist.rkt" "datum.rkt" "lookup.rkt")
 (provide make-graph graph-insert-datum! graph-insert-subgraph!
-         graph-sub-ref graph-datum-ref
+         graph-sub-ref graph-datum-ref graph-has-datum?
          graph-frozen? graph-freeze! graph-unfreeze!
-         graph-result graph-set-expr!)
+         graph-result graph-set-expr!
+         graph-lookup)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -80,6 +81,11 @@
       (unless (datum? ref)
         (error "Not a datum" id))
       ref)))
+
+(define (graph-has-datum? g id)
+  (with-handlers ([exn:fail? (lambda (exn) #f)])
+    (graph-datum-ref g id)
+    #t))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

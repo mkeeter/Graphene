@@ -30,15 +30,10 @@
 (define (id->string id)
   (string-join (map symbol->string id) "_"))
 
-(define (insert-newlines str)
-  (let recurse ([str (string-split str " ")])
-    (if (< (length str) 5) (string-join str " ")
-      (string-append (string-join (take str 5) " ")
-                     "<br/>" (recurse (drop str 5))))))
-
 (define (format-exn exn)
   (let recurse ([str (exn-message exn)]
-                [matches '(("\n" "<br/>")
+                [matches '(("<" "") (">" "")
+                           ("\n" "<br/>")
                            ("UNKNOWN::0: " "")
                            ("`" "'"))])
     (if (empty? matches) str
@@ -49,15 +44,15 @@
   ;; id is the full path to the datum d
   (let ([name (id->string id)]
         [res (datum-result d)])
-    (format-indented indent "~a [label=<<table border=\"0\" cellborder=\"1\" cellspacing=\"0\" bgcolor=\"~a\">
+    (format-indented indent "~a [label=<<table border=\"0\" cellborder=\"1\" cellspacing=\"0\">
     <tr><td>~a</td></tr>
     <tr><td balign=\"left\" port=\"~a\">~a</td></tr>
-    <tr><td balign=\"left\">~a</td></tr></table>>];"
+    <tr><td bgcolor=\"~a\" balign=\"left\">~a</td></tr></table>>];"
       name
-      (if (exn:fail? res) "#ffdddd" "#ffffff")
       (last id)
       name
       (string-replace (datum-expr d) "\n" "<br/>")
+      (if (exn:fail? res) "#ffdddd" "#ffffff")
       (if (exn:fail? res) (format-exn res) res)
       )))
 
@@ -76,25 +71,38 @@
               ]))))
     "\n"))
 
+(define (lookup->dot g)
+  (apply string-append (hash-map (car (graph-lookup g))
+      (lambda (k v)
+          (apply string-append (hash-map v
+            (lambda (v _)
+              (if (graph-has-datum? g v)
+                (string-append (id->string v) " -> " (id->string k) ";\n")
+                ""))
+            ))
+        ))))
+
 (define (graph->dot g)
   (format "digraph {
   rankdir=LR;
   node [shape=plaintext, fontname=\"Consolas\"]
   graph [fontname=\"Consolas\"]
 ~a
+~a
 }"
-  (subgraph->dot (graph-sub-ref g '()))))
+  (subgraph->dot (graph-sub-ref g '()))
+  (lookup->dot g)))
 
 (define g (make-graph))
 (graph-insert-datum! g '(a) "(+ 1 2)")
 (graph-insert-subgraph! g '(sub))
-(graph-insert-datum! g '(sub a) "(+ 3 2)")
+(graph-insert-datum! g '(sub a) "(input (+ (c) 2))")
 (graph-insert-datum! g '(sub b) "(+ 1")
 (graph-insert-datum! g '(sub c) "(+ 1 \"omg\")")
 (graph-insert-datum! g '(b) "(range 10)")
 (graph-insert-datum! g '(c)
 "(let ([x 10]
-      [y 10])
+      [y 20])
   (+ x y))")
 (display (graph->dot g))
 (newline)

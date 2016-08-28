@@ -32,7 +32,7 @@
 
 (define (format-exn exn)
   (let recurse ([str (exn-message exn)]
-                [matches '(("<" "&lt;") (">" "&gt;")
+                [matches '(("<" "&lt;") (">" "&gt;") ("&" "&amp;")
                            ("\n" "<br/>")
                            ("UNKNOWN::0: " "")
                            ("`" "'"))])

@@ -158,7 +158,18 @@
     (let ([d (make-datum)])
       (set-datum-expr! d "(+ 1 2)(+ 3 4)")
       (datum-eval! d)
-      (check-false (datum-valid? d))))
+      (check-true (datum-valid? d))
+      (check-equal? (datum-result d) 7)
+      (set-datum-expr! d "(define x 12)(+ x 4)")
+      (datum-eval! d)
+      (check-true (datum-valid? d))
+      (check-equal? (datum-result d) 16)))
+
+  (test-case "require in datum"
+    (let ([d (make-datum)])
+      (set-datum-expr! d "(require racket)(range 10)")
+      (datum-eval! d)
+      (check-equal? (datum-result d) (range 10))))
 
   (test-case "datum-is-output?"
     (let ([d (make-datum)])

@@ -44,12 +44,9 @@
     ;; Error handler for all normal errors
     (lambda (v) (set-datum-result! d v))])
     ;; Try to evaluate the datum's expression
-    (let ([expr (read input)])
-      ;; If there are multiple forms in the expression, raise an error
-      (when (not (equal? (read input) eof))
-            (error "Too many forms" (datum-expr d)))
-      ;; Otherwise attempt to eval and store the result
-      (set-datum-result! d (eval expr env))))
+    (let recurse ([expr (read input)] [val eof])
+      (if (equal? expr eof) (set-datum-result! d val)
+          (recurse (read input) (eval expr env)))))
 
   ;; Check for changes, either of the form
   ;;    value -> error

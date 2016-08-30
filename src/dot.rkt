@@ -18,7 +18,7 @@
 |#
 #lang racket
 
-(require "datum.rkt" "graph.rkt")
+(require "datum.rkt" "graph.rkt" "lookup.rkt")
 (provide graph->dot)
 
 (define (format-indented indent fmt . args)
@@ -72,7 +72,7 @@
     "\n"))
 
 (define (lookup->dot g)
-  (apply string-append (hash-map (car (graph-lookup g))
+  (apply string-append (hash-map (lookup-forward (graph-lookup g))
       (lambda (k v)
           (apply string-append (hash-map v
             (lambda (v _)

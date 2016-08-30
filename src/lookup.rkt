@@ -22,23 +22,19 @@
 (require racket/set racket/hash)
 
 (provide make-lookup lookup-record! lookup-clear! lookup-downstream?
-         lookup-inverse->list)
+         lookup-inverse->list lookup-forward)
 
 ;; Makes an empty lookup table
-(define (make-lookup) (list (make-hash) (make-hash) (make-hash)))
-
-;; Access individual elements in the table
-(define (lookup-forward-ref table) (car table))
-(define (lookup-inverse-ref table) (cadr table))
-(define (lookup-upstream-ref table) (caddr table))
+(struct lookup (forward inverse upstream) #:mutable)
+(define (make-lookup) (lookup (make-hash) (make-hash) (make-hash)))
 
 (define (lookup-ref table dir key)
   ;;  Returns the hash for the given direction and key
   ;;    dir is 'forward, 'inverse, or 'upstream
   ;;    key is the hash-set key
-  (let* ([hash (cond [(eq? dir 'forward)  (lookup-forward-ref  table)]
-                     [(eq? dir 'inverse)  (lookup-inverse-ref  table)]
-                     [(eq? dir 'upstream) (lookup-upstream-ref table)]
+  (let* ([hash (cond [(eq? dir 'forward)  (lookup-forward table)]
+                     [(eq? dir 'inverse)  (lookup-inverse table)]
+                     [(eq? dir 'upstream) (lookup-upstream table)]
                      [else (error "Invalid key" dir)])]
          [out (hash-ref hash key #f)])
     (unless out
@@ -61,8 +57,8 @@
   ;; Clears all lookups performed by a
   (hash-for-each (lookup-ref table 'forward a)
                  (lambda (b _) (hash-remove! (lookup-ref table 'inverse b) a)))
-  (hash-remove! (lookup-forward-ref table) a)
-  (hash-remove! (lookup-upstream-ref table) a))
+  (hash-remove! (lookup-forward table) a)
+  (hash-remove! (lookup-upstream table) a))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

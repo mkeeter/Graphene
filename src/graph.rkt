@@ -19,10 +19,15 @@
 #lang racket
 
 (require "topolist.rkt" "datum.rkt" "lookup.rkt")
-(provide make-graph graph-insert-datum! graph-insert-subgraph!
-         graph-sub-ref graph-datum-ref graph-has-datum?
+(provide ; Public API
+         make-graph graph-insert-datum! graph-insert-subgraph!
+         graph-has-datum? graph-has-subgraph?
+         graph-result graph-set-expr! graph-delete!
+         graph-datums->list graph-datums->tree
+
+         ; Other functions exposed for testing purposes
+         graph-sub-ref graph-datum-ref
          graph-frozen? graph-freeze! graph-unfreeze!
-         graph-result graph-set-expr!
          graph-lookup)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -179,6 +184,57 @@
     (if (hash-has-key? ref name)
       (error "Id already exists" id)
       (hash-set! ref name (make-hash)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (graph-delete-subgraph! g id)
+  ;; Recursively deletes a subgraph
+  (let-values ([(prefix name) (split-id id)]
+               [(frozen) (graph-frozen? g)])
+    (when (not frozen) (graph-freeze! g))
+    (hash-map (graph-sub-ref g id)
+      (lambda (k v)
+        (let ([path (append id (list k))])
+        (cond [(datum? v) (graph-delete-datum! g path)]
+              [(hash? v)  (graph-delete-subgraph! g path)]))))
+    (hash-remove! (graph-sub-ref g prefix) name)
+    (when (not frozen) (graph-unfreeze! g))))
+
+(define (graph-delete-datum! g id)
+  ;; Deletes a datum from the graph
+  (let-values ([(prefix name) (split-id id)]
+               [(frozen) (graph-frozen? g)])
+    (when (not frozen) (graph-freeze! g))
+    (hash-remove! (graph-sub-ref g prefix) name)
+    ;; Remove all record of lookups performed by this datum
+    (lookup-clear! (graph-lookup g) id)
+    ;; Then mark everything that this datum looked up as dirty
+    (map (lambda (k) (graph-dirty! g k))
+         (lookup-inverse->list (graph-lookup g) id))
+    (when (not frozen) (graph-unfreeze! g))))
+
+(define (graph-delete! g id)
+  ;; Erases a datum or subgraph by absolute path
+  (cond [(graph-has-datum? g id) (graph-delete-datum! g id)]
+        [(graph-has-subgraph? g id) (graph-delete-subgraph! g id)]
+        [else (error "~a is neither a subgraph nor a datum" id)]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (graph-datums->list g)
+  (let recurse ([prefix '()])
+    (apply append (hash-map (graph-sub-ref g prefix)
+      (lambda (k v)
+        (let ([path (append prefix (list k))])
+          (cond [(datum? v) (list path)]
+                [(hash? v) (recurse path)])))))))
+
+(define (graph-datums->tree g)
+  (let recurse ([target (graph-sub-ref g '())])
+    (hash-map target
+      (lambda (k v)
+          (cond [(datum? v) k]
+                [(hash? v) (cons k (recurse v))])))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

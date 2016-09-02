@@ -339,6 +339,39 @@
       (graph-insert-datum! g '(sub a) "(output 15)")
       (check-equal? (graph-result g '(b)) 16)
   ))
+
+  (test-case "Deleting datums in a graph"
+    (let ([g (make-graph)])
+      (graph-insert-subgraph! g '(sub))
+      (graph-insert-datum! g '(b) "(+ 1 (sub 'a))")
+      (graph-insert-datum! g '(sub a) "(output 15)")
+      (graph-insert-datum! g '(sub b) "(+ (a) 12)")
+      (check-exn exn:fail? (lambda () (graph-delete! g '(c))))
+      (check-exn exn:fail? (lambda () (graph-delete! g '(sub c))))
+      (check-equal? (graph-result g '(sub b)) 27)
+      (graph-delete! g '(sub))
+      (check-true (exn:fail? (graph-result g '(b))))
+  ))
+
+  (test-case "Graph to list"
+    (let ([g (make-graph)])
+      (graph-insert-subgraph! g '(sub))
+      (graph-insert-datum! g '(b) "(+ 1 (sub 'a))")
+      (graph-insert-datum! g '(sub a) "(output 15)")
+      (graph-insert-datum! g '(sub b) "(+ (a) 12)")
+      (check-equal? (apply set (graph-datums->list g))
+                    (set '(sub a) '(sub b) '(b)))
+  ))
+
+  (test-case "Graph to tree"
+    (let ([g (make-graph)])
+      (graph-insert-subgraph! g '(sub))
+      (graph-insert-datum! g '(b) "(+ 1 (sub 'a))")
+      (graph-insert-datum! g '(sub a) "(output 15)")
+      (graph-insert-datum! g '(sub b) "(+ (a) 12)")
+      (check-equal? (graph-datums->tree g)
+                    '(b (sub b a)))
+  ))
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

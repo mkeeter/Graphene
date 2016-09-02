@@ -24,7 +24,7 @@
          graph-has-datum? graph-has-subgraph?
          graph-result graph-expr graph-set-expr! graph-delete!
          graph-datums->list graph-datums->tree
-         format-graph
+         format-graph print-graph
 
          ; Other functions exposed for testing purposes
          graph-sub-ref graph-datum-ref

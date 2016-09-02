@@ -247,7 +247,7 @@
     (let ([t (make-string indent #\ )])
     (string-append t
     (string-replace (string-join (map (lambda (k)
-      (cond [(list? k) (format "- ~a:\n~a" (car k)
+      (cond [(list? k) (format "├ ~a:\n~a" (car k)
                                (recurse (cdr k) (+ 2 indent)
                                (append prefix (list (car k)))))]
             [else
@@ -256,8 +256,8 @@
                    [result (if (exn:fail? _result)
                            (exn-message _result) _result)]
                    [expr (graph-expr g path)])
-                  (string-replace (format "- ~a\n~a\n= ~a" k expr result)
-                    "\n" "\n| "))]))
+                  (string-replace (format "├ ~a\n  ~a\n = ~a" k expr result)
+                    "\n" "\n│"))]))
       target)
     "\n") "\n" (string-append "\n" t))))))
 

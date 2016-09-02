@@ -87,6 +87,11 @@
     (graph-datum-ref g id)
     #t))
 
+(define (graph-has-subgraph? g id)
+  (with-handlers ([exn:fail? (lambda (exn) #f)])
+    (graph-sub-ref g id)
+    #t))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (graph-env g caller [input #f])

@@ -86,10 +86,11 @@
   (format "digraph {
   rankdir=LR;
   node [shape=plaintext, fontname=\"Consolas\"]
-  graph [fontname=\"Consolas\"]
+  graph [fontname=\"Consolas\",
+         dpi=150,
+         bgcolor=transparent]
 ~a
-~a
-}"
+~a}"
   (subgraph->dot (graph-sub-ref g '()))
   (lookup->dot g)))
 

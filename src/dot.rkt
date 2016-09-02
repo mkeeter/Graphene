@@ -107,3 +107,5 @@
   (+ x y))")
 (display (graph->dot g))
 (newline)
+(display (format-graph g))
+(newline)

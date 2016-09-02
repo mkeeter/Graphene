@@ -22,8 +22,9 @@
 (provide ; Public API
          make-graph graph-insert-datum! graph-insert-subgraph!
          graph-has-datum? graph-has-subgraph?
-         graph-result graph-set-expr! graph-delete!
+         graph-result graph-expr graph-set-expr! graph-delete!
          graph-datums->list graph-datums->tree
+         format-graph
 
          ; Other functions exposed for testing purposes
          graph-sub-ref graph-datum-ref
@@ -223,6 +224,7 @@
 
 (define (graph-datums->list g)
   (let recurse ([prefix '()])
+  ;; Returns a flat structure of absolute datum ids
     (apply append (hash-map (graph-sub-ref g prefix)
       (lambda (k v)
         (let ([path (append prefix (list k))])
@@ -230,11 +232,38 @@
                 [(hash? v) (recurse path)])))))))
 
 (define (graph-datums->tree g)
+  ;; Returns a recursive structure with relative datum ids
   (let recurse ([target (graph-sub-ref g '())])
     (hash-map target
       (lambda (k v)
           (cond [(datum? v) k]
                 [(hash? v) (cons k (recurse v))])))))
+
+(define (format-graph g)
+  ;; Formats a graph as a tree structure
+  (let recurse ([target (graph-datums->tree g)]
+                [indent 0]
+                [prefix '()])
+    (let ([t (make-string indent #\ )])
+    (string-append t
+    (string-replace (string-join (map (lambda (k)
+      (cond [(list? k) (format "- ~a:\n~a" (car k)
+                               (recurse (cdr k) (+ 2 indent)
+                               (append prefix (list (car k)))))]
+            [else
+            (let* ([path (append prefix (list k))]
+                   [_result (graph-result g path)]
+                   [result (if (exn:fail? _result)
+                           (exn-message _result) _result)]
+                   [expr (graph-expr g path)])
+                  (string-replace (format "- ~a\n~a\n= ~a" k expr result)
+                    "\n" "\n| "))]))
+      target)
+    "\n") "\n" (string-append "\n" t))))))
+
+(define (print-graph g)
+  ;; Prints the given graph to stdout
+  (display (format-graph g)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -282,3 +311,7 @@
 (define (graph-result g id)
   ;; Returns the value for the given datum
   (datum-result (graph-datum-ref g id)))
+
+(define (graph-expr g id)
+  ;; Returns the expression for the given datum
+  (datum-expr (graph-datum-ref g id)))

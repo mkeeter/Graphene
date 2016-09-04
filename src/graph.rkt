@@ -246,6 +246,7 @@
 
 (define (format-graph g)
   ;; Formats a graph as a tree structure
+  (string-replace
   (let recurse ([target (graph-datums->tree g)]
                 [indent ""]
                 [prefix '()])
@@ -265,7 +266,8 @@
       target)
     "\n")
     "\n" (string-append "\n" indent)))
-    "├" "┬" #:all? #f)))
+    "├" "┬" #:all? #f))
+    "┬" "┌" #:all? #f))
 
 (define (print-graph g)
   ;; Prints the given graph to stdout

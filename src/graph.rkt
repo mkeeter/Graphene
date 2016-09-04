@@ -242,13 +242,12 @@
 (define (format-graph g)
   ;; Formats a graph as a tree structure
   (let recurse ([target (graph-datums->tree g)]
-                [indent 0]
+                [indent ""]
                 [prefix '()])
-    (let ([t (make-string indent #\ )])
-    (string-append t
+    (string-replace (string-append indent
     (string-replace (string-join (map (lambda (k)
       (cond [(list? k) (format "├ ~a:\n~a" (car k)
-                               (recurse (cdr k) (+ 2 indent)
+                               (recurse (cdr k) "│ "
                                (append prefix (list (car k)))))]
             [else
             (let* ([path (append prefix (list k))]
@@ -259,7 +258,9 @@
                   (string-replace (format "├ ~a\n  ~a\n = ~a" k expr result)
                     "\n" "\n│"))]))
       target)
-    "\n") "\n" (string-append "\n" t))))))
+    "\n")
+    "\n" (string-append "\n" indent)))
+    "├" "┬" #:all? #f)))
 
 (define (print-graph g)
   ;; Prints the given graph to stdout

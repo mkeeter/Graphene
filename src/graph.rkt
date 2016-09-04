@@ -233,11 +233,16 @@
 
 (define (graph-datums->tree g)
   ;; Returns a recursive structure with relative datum ids
+  (define (sort-list ds)
+    (sort ds (lambda (a b)
+      (string-ci<? (symbol->string (if (list? a) (car a) a))
+                   (symbol->string (if (list? b) (car b) b))))))
+  (sort-list
   (let recurse ([target (graph-sub-ref g '())])
     (hash-map target
       (lambda (k v)
           (cond [(datum? v) k]
-                [(hash? v) (cons k (recurse v))])))))
+                [(hash? v) (cons k (sort-list (recurse v)))]))))))
 
 (define (format-graph g)
   ;; Formats a graph as a tree structure

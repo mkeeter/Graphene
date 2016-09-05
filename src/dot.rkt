@@ -52,7 +52,7 @@
       (last id)
       name
       (string-replace (datum-expr d) "\n" "<br/>")
-      (if (exn:fail? res) "#ffdddd" "#ffffff")
+      (if (exn:fail? res) "#ff777788" "#ffffff00")
       (if (exn:fail? res) (format-exn res) res)
       )))
 

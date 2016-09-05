@@ -74,8 +74,8 @@
 (define (lookup->dot g)
   (apply string-append (hash-map (lookup-forward (graph-lookup g))
       (lambda (k v)
-          (apply string-append (hash-map v
-            (lambda (v _)
+          (apply string-append (set-map v
+            (lambda (v)
               (if (graph-has-datum? g v)
                 (string-append (id->string v) " -> " (id->string k) ";\n")
                 ""))

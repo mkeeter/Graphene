@@ -247,27 +247,36 @@
 (define (format-graph g)
   ;; Formats a graph as a tree structure
   (string-replace
-  (let recurse ([target (graph-datums->tree g)]
-                [indent ""]
-                [prefix '()])
-    (string-replace (string-append indent
-    (string-replace (string-join (map (lambda (k)
-      (cond [(list? k) (format "├ ~a:\n~a" (car k)
-                               (recurse (cdr k) "│ "
-                               (append prefix (list (car k)))))]
-            [else
-            (let* ([path (append prefix (list k))]
-                   [_result (graph-result g path)]
-                   [result (if (exn:fail? _result)
-                           (exn-message _result) _result)]
-                   [expr (graph-expr g path)])
-                  (string-replace (format "├ ~a\n  ~a\n = ~a" k expr result)
-                    "\n" "\n│"))]))
-      target)
-    "\n")
-    "\n" (string-append "\n" indent)))
-    "├" "┬" #:all? #f))
-    "┬" "┌" #:all? #f))
+    (let recurse ([target (graph-datums->tree g)]
+                  [prefix '()])
+
+      (define (format-datum d)
+        (let* ([path (append prefix (list d))]
+               [_result (graph-result g path)]
+               [result (if (exn:fail? _result)
+                       (exn-message _result) (format "= ~a" _result))]
+               [expr (graph-expr g path)])
+              (string-replace (format "├ ~a\n  ~a\n ~a" d expr result)
+                "\n" "\n│")))
+
+      (define (format-subgraph g)
+        (let* ([name (car g)]
+               [sub  (cdr g)])
+        (format "├ ~a:\n~a" name (recurse sub
+                                 (append prefix (list name))))))
+
+      (define (format-item k)
+        (cond [(list? k) (format-subgraph k)]
+              [else      (format-datum k)]))
+
+      (let* ([indent (if (empty? prefix) ""  "│ ")]
+             [formatted (map format-item target)]
+             [joined (string-join formatted "\n")]
+             [line (string-append "\n" indent)]
+             [indented (string-replace joined "\n" line)]
+             [almost (string-append indent indented)])
+      (string-replace almost "├" "┬" #:all? #f)))
+  "┬" "┌" #:all? #f))
 
 (define (print-graph g)
   ;; Prints the given graph to stdout

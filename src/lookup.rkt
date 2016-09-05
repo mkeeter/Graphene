@@ -38,25 +38,24 @@
                      [else (error "Invalid key" dir)])]
          [out (hash-ref hash key #f)])
     (unless out
-      (set! out (make-hash))
+      (set! out (mutable-set))
       (hash-set! hash key out)
       ;; Special-case for the 'upstream hash, which contains itself
       (when (eq? dir 'upstream)
-        (hash-set! out key #t)))
+        (set-add! out key)))
     out))
 
 (define (lookup-record! table a b)
   ;; Records that a looked up b
-  (hash-set! (lookup-ref table 'forward a) b #t)
-  (hash-set! (lookup-ref table 'inverse b) a #t)
-  (hash-union! (lookup-ref table 'upstream a)
-               (lookup-ref table 'upstream b)
-               #:combine/key (lambda _ #t)))
+  (set-add! (lookup-ref table 'forward a) b)
+  (set-add! (lookup-ref table 'inverse b) a)
+  (set-union! (lookup-ref table 'upstream a)
+              (lookup-ref table 'upstream b)))
 
 (define (lookup-clear! table a)
   ;; Clears all lookups performed by a
-  (hash-for-each (lookup-ref table 'forward a)
-                 (lambda (b _) (hash-remove! (lookup-ref table 'inverse b) a)))
+  (set-for-each (lookup-ref table 'forward a)
+                (lambda (b) (set-remove! (lookup-ref table 'inverse b) a)))
   (hash-remove! (lookup-forward table) a)
   (hash-remove! (lookup-upstream table) a))
 
@@ -65,8 +64,8 @@
 (define (lookup-downstream? table a b)
   ;; Checks if a is downstream of b
   ;; (i.e. checking if b is in a's upstream set)
-  (hash-has-key? (lookup-ref table 'upstream a) b))
+  (set-member? (lookup-ref table 'upstream a) b))
 
 (define (lookup-inverse->list table a)
   ;; Returns a list of a's inverse lookups
-  (hash-map (lookup-ref table 'inverse a) (lambda (k v) k)))
+  (set->list (lookup-ref table 'inverse a)))

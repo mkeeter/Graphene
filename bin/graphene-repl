@@ -1,2 +1,2 @@
 #!/bin/sh
-cd $(dirname $0)/../src && racket -i -e '(enter! "repl.rkt")'
+clear && cd $(dirname $0)/../src && racket -i -e '(enter! "repl.rkt")'
